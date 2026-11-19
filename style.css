@@ -224,19 +224,81 @@
   }
 }
 
-/* Mobile Landscape (tinggi viewport < 500px) */
+/* Mobile Landscape (tinggi viewport < 500px): Tata letak ramping 1 baris, tuts piano tidak terpotong */
 @media (orientation: landscape) and (max-height: 500px) {
+  /* Header utama dibuat 1 baris ramping tanpa membungkus (no wrap) */
+  header {
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    padding-top: max(2px, env(safe-area-inset-top)) !important;
+    padding-bottom: 2px !important;
+    padding-left: max(8px, env(safe-area-inset-left)) !important;
+    padding-right: max(8px, env(safe-area-inset-right)) !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    gap: 8px !important;
+  }
+
+  /* Sembunyikan subtitle & hint canvas di landscape agar hemat ruang */
+  #header-free-mode p,
+  #free-play-hint {
+    display: none !important;
+  }
+
+  /* Ukuran tombol di header ramping proporsional */
+  #btn-open-catalog {
+    padding: 3px 8px !important;
+    font-size: 11px !important;
+  }
+  #sound-select,
+  #btn-sustain,
+  #btn-metronome,
+  #btn-midi {
+    padding: 3px 7px !important;
+    font-size: 11px !important;
+  }
+  #btn-metronome {
+    padding: 4px 6px !important;
+  }
+
+  /* Toolbar latihan mode synthesia di landscape */
+  #practice-toolbar {
+    height: 34px !important;
+    min-height: 34px !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 6px !important;
+  }
+
+  /* Canvas mengisi sisa ruang secara fleksibel tanpa meluap */
+  #waterfall-container {
+    flex: 1 1 0% !important;
+    min-height: 30px !important;
+    overflow: hidden !important;
+  }
+
+  /* Papan tuts piano terkunci pas dan tidak pernah terpotong di layar HP */
+  #piano-wrapper {
+    flex-shrink: 0 !important;
+    width: 100% !important;
+  }
   #piano-keyboard {
     height: 115px !important;
+    min-height: 115px !important;
+    max-height: 120px !important;
   }
   .white-key {
-    padding-bottom: 5px;
+    padding-bottom: 4px !important;
   }
   .black-key {
-    padding-bottom: 4px;
+    padding-bottom: 3px !important;
   }
   .key-label-note {
-    font-size: 10px;
+    font-size: 9px !important;
   }
 }
 

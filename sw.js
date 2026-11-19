@@ -7,7 +7,7 @@
  * Dukungan browser terhadap Service Worker dan Cache Storage pada iOS Safari versi lawas.
  */
 
-const CACHE_VERSION = 'asix-piano-v3';
+const CACHE_VERSION = 'asix-piano-v4';
 const APP_SHELL_FILES = [
   './',
   'index.html',

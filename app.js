@@ -379,28 +379,75 @@
       osc2.start(now);
       oscillators.push(osc1, osc2);
     } else if (soundType === 'organ') {
-      // Organ: Drawbar harmonics
-      const osc1 = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
-      osc1.type = 'sawtooth';
-      osc2.type = 'sine';
-      osc1.frequency.setValueAtTime(freq, now);
-      osc2.frequency.setValueAtTime(freq * 2, now);
+      // Organ Megah dengan Pondasi Nada Bass Tebal (Sub-Bass 16' + 8' + 4' + 2-2/3')
+      // 1. Sub-Bass 16' (1 oktaf di bawah nada tuts) untuk bobot bass yang mantap & nyata
+      const oscSubBass = ctx.createOscillator();
+      oscSubBass.type = 'triangle';
+      oscSubBass.frequency.setValueAtTime(freq * 0.5, now);
 
+      // 2. Fundamental 8' (Dual oscillator Sawtooth & Square dengan detune chorus akustik)
+      const oscFund1 = ctx.createOscillator();
+      const oscFund2 = ctx.createOscillator();
+      oscFund1.type = 'sawtooth';
+      oscFund2.type = 'square';
+      oscFund1.frequency.setValueAtTime(freq, now);
+      oscFund2.frequency.setValueAtTime(freq, now);
+      oscFund1.detune.setValueAtTime(-3.5, now);
+      oscFund2.detune.setValueAtTime(3.5, now);
+
+      // 3. Octave 4' (Harmonik atas untuk kejelasan nada)
+      const oscOctave = ctx.createOscillator();
+      oscOctave.type = 'sine';
+      oscOctave.frequency.setValueAtTime(freq * 2, now);
+
+      // 4. Nazard / Quint 2-2/3' (Pipa shimmer khas organ katedral / gereja)
+      const oscNazard = ctx.createOscillator();
+      oscNazard.type = 'sine';
+      oscNazard.frequency.setValueAtTime(freq * 3, now);
+
+      // Gain per pipa
+      const gSubBass = ctx.createGain();
+      const gFund1 = ctx.createGain();
+      const gFund2 = ctx.createGain();
+      const gOctave = ctx.createGain();
+      const gNazard = ctx.createGain();
+
+      gSubBass.gain.setValueAtTime(0.50, now); // Bobot bass tebal
+      gFund1.gain.setValueAtTime(0.35, now);
+      gFund2.gain.setValueAtTime(0.20, now);
+      gOctave.gain.setValueAtTime(0.18, now);
+      gNazard.gain.setValueAtTime(0.10, now);
+
+      // Resonant Low-Pass Filter untuk karakter organ hangat & tidak cempreng
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(freq * 3, now);
+      filter.frequency.setValueAtTime(Math.min(freq * 4.5, 4200), now);
+      filter.Q.setValueAtTime(1.2, now);
 
-      osc1.connect(filter);
-      osc2.connect(filter);
+      oscSubBass.connect(gSubBass);
+      oscFund1.connect(gFund1);
+      oscFund2.connect(gFund2);
+      oscOctave.connect(gOctave);
+      oscNazard.connect(gNazard);
+
+      gSubBass.connect(filter);
+      gFund1.connect(filter);
+      gFund2.connect(filter);
+      gOctave.connect(filter);
+      gNazard.connect(filter);
+
       filter.connect(masterGain);
 
+      // Envelope Organ: Respon spontan dan sustain stabil
       masterGain.gain.setValueAtTime(0.0001, now);
-      masterGain.gain.linearRampToValueAtTime(0.25, now + 0.02);
+      masterGain.gain.linearRampToValueAtTime(0.35, now + 0.012);
 
-      osc1.start(now);
-      osc2.start(now);
-      oscillators.push(osc1, osc2);
+      oscSubBass.start(now);
+      oscFund1.start(now);
+      oscFund2.start(now);
+      oscOctave.start(now);
+      oscNazard.start(now);
+      oscillators.push(oscSubBass, oscFund1, oscFund2, oscOctave, oscNazard);
     } else {
       // Piano Akustik: Fundamental + Overtone + Filter
       const osc1 = ctx.createOscillator();
