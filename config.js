@@ -10,7 +10,7 @@
 
 window.APP_CONFIG = {
   SUPABASE_URL: "https://ifownprewxzjmlkyrgjw.supabase.co",
-  SUPABASE_PUBLISHABLE_KEY: "sb_publishable_kpYxCnMSLG6edkiS08EJhQ_Rtjiqm0uLIK",
+  SUPABASE_PUBLISHABLE_KEY: "sb_publishable_kpYxCnMSLG6edkiS08EJhQ_Rtjiqm0u",
   LOGO_URL: "./asix_studio_circle_web_320_v2.webp",
   PAGE_SIZE: 10
 };
