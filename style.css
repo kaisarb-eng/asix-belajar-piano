@@ -1,7 +1,7 @@
 /*
  * File: style.css
- * Fungsi: Tata gaya tema gelap & orange, tuts piano responsif, animasi falling notes, dan area notch aman
- * Fitur: 1, 2, 7, 13
+ * Fungsi: Tata gaya tema gelap & orange, tuts piano responsif proporsional (Free Play & Synthesia), falling notes, dan area notch aman
+ * Fitur: 1, 2, 7, 8, 13
  */
 
 /* Safe area insets untuk perangkat berlayar notch (iPhone & Android modern) */
@@ -31,7 +31,6 @@
   scrollbar-width: none;
 }
 
-/* Tata letak fleksibel menggunakan dvh untuk akurasi viewport mobile */
 @supports (height: 100dvh) {
   body {
     height: 100dvh;
@@ -39,27 +38,93 @@
 }
 
 /* ==========================================================================
-   PIANO KEYS STYLING (14 Tuts Putih + 10 Tuts Hitam C4 - B5)
+   PIANO HOUSING & FELT STRIP
    ========================================================================== */
+#piano-wrapper {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(180deg, #181822 0%, #0E0F16 100%);
+  border-top: 1px solid #2A2A38;
+  box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.7);
+}
+
+/* Red Velvet Felt Strip di atas tuts (Ciri khas grand piano profesional) */
+#piano-wrapper::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #7F1D1D 0%, #B91C1C 50%, #7F1D1D 100%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
 #piano-keyboard {
   display: flex;
   position: relative;
   width: 100%;
-  height: 100%;
-  background-color: #0b0b0e;
+  background-color: #0B0B0E;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
 }
 
-/* Tuts Putih (14 buah) */
+/* ==========================================================================
+   TUTS PUTIH (14 BUAH: C4 - B5)
+   ========================================================================== */
 .white-key {
   position: relative;
   flex: 1 1 0;
   height: 100%;
-  background: linear-gradient(180deg, #FFFFFF 0%, #F5F5FA 80%, #D5D5DF 94%, #BCBCBC 100%);
-  border: 1px solid #1a1a24;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8F8FC 65%, #E5E5ED 88%, #CBCBD6 100%);
+  border-left: 1px solid rgba(0, 0, 0, 0.15);
+  border-right: 1px solid rgba(0, 0, 0, 0.3);
+  border-bottom: 3px solid #9E9EAA;
   border-top: none;
-  border-radius: 0 0 6px 6px;
-  box-shadow: inset 0 -4px 4px rgba(0, 0, 0, 0.15), 0 4px 6px -1px rgba(0, 0, 0, 0.6);
+  border-radius: 0 0 7px 7px;
+  box-shadow: inset -1px 0 1px rgba(255, 255, 255, 0.7), inset 0 -4px 5px rgba(0, 0, 0, 0.12), 0 6px 8px -1px rgba(0, 0, 0, 0.5);
   z-index: 10;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 10px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: transform 0.05s cubic-bezier(0.2, 0.8, 0.3, 1), background 0.06s ease, box-shadow 0.06s ease;
+}
+
+.white-key:hover {
+  background: linear-gradient(180deg, #FFFFFF 0%, #FFF8F0 70%, #FFE8D6 92%, #F3D0B6 100%);
+}
+
+.white-key:active,
+.white-key.is-pressed {
+  background: linear-gradient(180deg, #FFA726 0%, #FF6B00 60%, #E65100 100%) !important;
+  transform: translateY(4px);
+  border-bottom-width: 1px;
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.4), 0 0 25px rgba(255, 107, 0, 0.9) !important;
+}
+
+.white-key.is-target {
+  background: linear-gradient(180deg, #FFF3E0 0%, #FFE0B2 45%, #FFB74D 100%);
+  box-shadow: 0 0 20px rgba(255, 107, 0, 0.85), inset 0 -4px 6px rgba(255, 107, 0, 0.4);
+}
+
+/* ==========================================================================
+   TUTS HITAM (10 BUAH: C#4 - A#5)
+   ========================================================================== */
+.black-key {
+  position: absolute;
+  top: 0;
+  height: 62%;
+  background: linear-gradient(180deg, #32323A 0%, #1A1A22 60%, #0B0B0F 100%);
+  border: 1px solid #000000;
+  border-top: none;
+  border-radius: 0 0 5px 5px;
+  box-shadow: inset 1px 0 1px rgba(255, 255, 255, 0.2), inset -1px 0 1px rgba(0, 0, 0, 0.7), inset 0 -3px 4px rgba(255, 255, 255, 0.08), 0 8px 14px rgba(0, 0, 0, 0.95);
+  z-index: 20;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -69,57 +134,28 @@
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
-  transition: transform 0.05s ease, background 0.08s ease, box-shadow 0.08s ease;
+  transition: transform 0.05s cubic-bezier(0.2, 0.8, 0.3, 1), background 0.06s ease, box-shadow 0.06s ease;
 }
 
-.white-key:active,
-.white-key.is-pressed {
-  background: linear-gradient(180deg, #FF9500 0%, #FF6B00 70%, #D95300 100%) !important;
-  transform: translateY(3px);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 107, 0, 0.7) !important;
-}
-
-.white-key.is-target {
-  background: linear-gradient(180deg, #FFF3E0 0%, #FFE0B2 40%, #FFB74D 100%);
-  box-shadow: 0 0 18px rgba(255, 107, 0, 0.8), inset 0 -4px 6px rgba(255, 107, 0, 0.4);
-}
-
-/* Tuts Hitam (10 buah) */
-.black-key {
-  position: absolute;
-  top: 0;
-  height: 60%;
-  background: linear-gradient(180deg, #24242A 0%, #16161C 60%, #070709 100%);
-  border: 1px solid #000000;
-  border-top: none;
-  border-radius: 0 0 4px 4px;
-  box-shadow: inset 0 -3px 3px rgba(255, 255, 255, 0.1), 0 5px 8px rgba(0, 0, 0, 0.9);
-  z-index: 20;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-  padding-bottom: 6px;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: none;
-  transition: transform 0.05s ease, background 0.08s ease, box-shadow 0.08s ease;
+.black-key:hover {
+  background: linear-gradient(180deg, #42424E 0%, #2A2A35 60%, #15151C 100%);
 }
 
 .black-key:active,
 .black-key.is-pressed {
   background: linear-gradient(180deg, #FF8800 0%, #FF6B00 65%, #C24800 100%) !important;
-  transform: translateY(2px) scaleY(0.98);
-  box-shadow: 0 0 16px rgba(255, 107, 0, 0.9), inset 0 2px 4px rgba(0,0,0,0.5) !important;
+  transform: translateY(3px) scaleY(0.98);
+  box-shadow: 0 0 22px rgba(255, 107, 0, 0.95), inset 0 2px 4px rgba(0, 0, 0, 0.6) !important;
 }
 
 .black-key.is-target {
-  background: linear-gradient(180deg, #B24BF3 0%, #8A2BE2 60%, #6815B8 100%);
-  box-shadow: 0 0 16px rgba(168, 85, 247, 0.85), inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(180deg, #C084FC 0%, #9333EA 60%, #6B21A8 100%);
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.9), inset 0 -2px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* Label Not & Hint Huruf Keyboard */
+/* ==========================================================================
+   LABEL NOT & PETUNJUK TOMBOL KEYBOARD
+   ========================================================================== */
 .key-label-note {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
@@ -129,7 +165,7 @@
 }
 
 .white-key .key-label-note {
-  color: #27272A;
+  color: #1F1F24;
 }
 .white-key.is-pressed .key-label-note,
 .white-key.is-target .key-label-note {
@@ -137,26 +173,30 @@
 }
 
 .black-key .key-label-note {
-  color: #D4D4D8;
-  font-size: 9px;
+  color: #E4E4E7;
+  font-size: 10px;
 }
 
 .key-label-hint {
   font-family: 'Plus Jakarta Sans', monospace;
-  font-size: 9px;
-  font-weight: 600;
-  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  margin-top: 3px;
   pointer-events: none;
   line-height: 1;
+  padding: 1px 3px;
+  border-radius: 3px;
 }
 .white-key .key-label-hint {
-  color: #71717A;
+  color: #64748B;
+  background: rgba(0, 0, 0, 0.05);
 }
 .black-key .key-label-hint {
-  color: #A1A1AA;
+  color: #CBD5E1;
+  background: rgba(255, 255, 255, 0.12);
 }
 
-/* Sembunyikan hint keyboard di perangkat touch */
+/* Sembunyikan hint keyboard di perangkat touch mobile */
 @media (hover: none) and (pointer: coarse) {
   .key-label-hint {
     display: none !important;
@@ -164,32 +204,47 @@
 }
 
 /* ==========================================================================
-   ORIENTATION & RESPONSIVE ADJUSTMENTS
+   RESPONSIVE TUNING (DESKTOP, MOBILE PORTRAIT, MOBILE LANDSCAPE)
    ========================================================================== */
-/* Mode Landscape di HP (tinggi viewport < 500px) */
-@media (orientation: landscape) and (max-height: 500px) {
-  #practice-screen header {
-    padding-top: max(4px, env(safe-area-inset-top));
-    padding-bottom: 4px;
+/* Mobile Portrait Tuts Styling */
+@media (max-width: 640px) {
+  .white-key {
+    padding-bottom: 6px;
+    border-radius: 0 0 5px 5px;
   }
-  #practice-screen .text-sm {
-    font-size: 0.8rem;
-  }
-  #piano-keyboard {
-    height: 90px !important;
-  }
-  .key-label-note {
+  .white-key .key-label-note {
     font-size: 9px;
   }
-  .white-key {
-    padding-bottom: 4px;
-  }
   .black-key {
-    padding-bottom: 3px;
+    padding-bottom: 5px;
+    border-radius: 0 0 4px 4px;
+  }
+  .black-key .key-label-note {
+    font-size: 8px;
   }
 }
 
-/* Garis Target Neon di atas Tuts (ditarik juga di Canvas) */
-.hit-line-pulse {
-  box-shadow: 0 0 15px #FF6B00, 0 0 30px #FF9500;
+/* Mobile Landscape (tinggi viewport < 500px) */
+@media (orientation: landscape) and (max-height: 500px) {
+  #piano-keyboard {
+    height: 115px !important;
+  }
+  .white-key {
+    padding-bottom: 5px;
+  }
+  .black-key {
+    padding-bottom: 4px;
+  }
+  .key-label-note {
+    font-size: 10px;
+  }
+}
+
+/* Animasi Pulse Neon Garis Target */
+@keyframes neonPulse {
+  0%, 100% { opacity: 0.85; filter: drop-shadow(0 0 8px #FF6B00); }
+  50% { opacity: 1; filter: drop-shadow(0 0 16px #FF9500); }
+}
+.target-line-glow {
+  animation: neonPulse 2s infinite ease-in-out;
 }

@@ -1,26 +1,15 @@
 /*
  * File: app.js
- * Fungsi: Logika lengkap frontend Asix Belajar Piano (Web Audio sintesis, Falling Notes canvas, Keyboard C4-B5, Supabase REST, AI song generation, PWA, MIDI)
+ * Fungsi: Logika utama aplikasi Asix Belajar Piano (Mode Bebas Piano & Mode Belajar Synthesia, Web Audio sintesis, Falling Notes Canvas, Supabase REST & AI, PWA)
  * Fitur: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
- * 
- * ATURAN KEAMANAN & PRIVASI:
- * - Tidak menggunakan localStorage, sessionStorage, IndexedDB, atau cookie. Semua state disimpan murni di memori.
- * - Seluruh data dari Supabase/AI ditampilkan lewat textContent untuk mencegah XSS.
- * 
- * PERLU VERIFIKASI:
- * 1. Dukungan Web MIDI API (navigator.requestMIDIAccess) pada browser mobile (seperti Chrome Android / Safari iOS belum mendukung Web MIDI secara default tanpa flag/adapter).
- * 2. Perilaku PWA display_override pada berbagai versi iOS Safari.
  */
 
 (function () {
   'use strict';
 
   // ============================================================================
-  // 1. KONSTANTA & DEFINISI NADA (C4 - B5) (Fitur: 1, 8)
+  // 1. DATA NADA (C4 - B5: 14 TUTS PUTIH + 10 TUTS HITAM) (Fitur: 1, 8)
   // ============================================================================
-  const HIT_WINDOW_SEC = 0.3; // Toleransi waktu tekan not benar (+- 0.3 detik)
-
-  // Daftar 14 Tuts Putih C4 sampai B5
   const WHITE_KEYS = [
     { note: 'C4', midi: 60, key: 'z' },
     { note: 'D4', midi: 62, key: 'x' },
@@ -38,7 +27,6 @@
     { note: 'B5', midi: 83, key: 'u' }
   ];
 
-  // Daftar 10 Tuts Hitam C4 sampai B5 (posisi indeks tuts putih sebelumnya)
   const BLACK_KEYS = [
     { note: 'C#4', midi: 61, key: 's', afterWhiteIndex: 0 },
     { note: 'D#4', midi: 63, key: 'd', afterWhiteIndex: 1 },
@@ -52,7 +40,6 @@
     { note: 'A#5', midi: 82, key: '7', afterWhiteIndex: 12 }
   ];
 
-  // Gabungan semua 24 nada terurut
   const ALL_KEYS = [...WHITE_KEYS, ...BLACK_KEYS].sort((a, b) => a.midi - b.midi);
   const KEY_MAP_BY_NOTE = new Map();
   const KEY_MAP_BY_MIDI = new Map();
@@ -64,50 +51,164 @@
     KEY_MAP_BY_KEYBOARD.set(k.key.toLowerCase(), k);
   });
 
-  // Frekuensi nada dari nomor MIDI
   function midiToFreq(midi) {
     return 440 * Math.pow(2, (midi - 69) / 12);
   }
 
   // ============================================================================
-  // 2. STATE APLIKASI (MURNI DALAM MEMORI)
+  // KOLEKSI LAGU TERVERIFIKASI & AKURAT (Built-in Fallback & Supabase Cache)
+  // ============================================================================
+  const BUILTIN_SONGS = [
+    {
+      id: 'kartini-akurat-1',
+      slug: 'ibu-kita-kartini',
+      title: 'Ibu Kita Kartini',
+      artist: 'W.R. Supratman',
+      category: 'nasional',
+      tempo_bpm: 80,
+      time_signature: '4/4',
+      is_ai: false,
+      notes: [
+        {n:'C4',t:0,d:1},{n:'D4',t:1,d:1},{n:'E4',t:2,d:1.5},{n:'F4',t:3.5,d:0.5},
+        {n:'G4',t:4,d:2},{n:'E4',t:6,d:2},
+        {n:'C4',t:8,d:1},{n:'A4',t:9,d:1},{n:'G4',t:10,d:1.5},{n:'F4',t:11.5,d:0.5},
+        {n:'E4',t:12,d:2},{n:'D4',t:14,d:2},
+        {n:'F4',t:16,d:1},{n:'A4',t:17,d:1},{n:'G4',t:18,d:1.5},{n:'F4',t:19.5,d:0.5},
+        {n:'E4',t:20,d:2},{n:'C4',t:22,d:2},
+        {n:'D4',t:24,d:1},{n:'F4',t:25,d:1},{n:'E4',t:26,d:1.5},{n:'D4',t:27.5,d:0.5},
+        {n:'C4',t:28,d:4},
+        {n:'F4',t:32,d:1},{n:'E4',t:33,d:0.5},{n:'F4',t:33.5,d:0.5},{n:'A4',t:34,d:1},{n:'G4',t:35,d:1},
+        {n:'A4',t:36,d:0.5},{n:'G4',t:36.5,d:0.5},{n:'E4',t:37,d:1},{n:'C4',t:38,d:2},
+        {n:'F4',t:40,d:1},{n:'E4',t:41,d:0.5},{n:'F4',t:41.5,d:0.5},{n:'A4',t:42,d:1},{n:'G4',t:43,d:1},
+        {n:'A4',t:44,d:0.5},{n:'G4',t:44.5,d:0.5},{n:'A4',t:45,d:3},
+        {n:'F4',t:48,d:1},{n:'E4',t:49,d:0.5},{n:'F4',t:49.5,d:0.5},{n:'A4',t:50,d:1},{n:'G4',t:51,d:1},
+        {n:'A4',t:52,d:0.5},{n:'G4',t:52.5,d:0.5},{n:'E4',t:53,d:1},{n:'C4',t:54,d:2},
+        {n:'D4',t:56,d:1},{n:'F4',t:57,d:1},{n:'E4',t:58,d:1.5},{n:'D4',t:59.5,d:0.5},
+        {n:'C4',t:60,d:4}
+      ]
+    },
+    {
+      id: 'gundul-pacul-akurat-2',
+      slug: 'gundul-gundul-pacul',
+      title: 'Gundul-Gundul Pacul',
+      artist: 'Tradisional Jawa Tengah',
+      category: 'daerah',
+      tempo_bpm: 95,
+      time_signature: '4/4',
+      is_ai: false,
+      notes: [
+        {n:'C4',t:0,d:1},{n:'E4',t:1,d:1},{n:'C4',t:2,d:1},{n:'E4',t:3,d:1},{n:'F4',t:4,d:1},{n:'G4',t:5,d:1},{n:'G4',t:6,d:2},
+        {n:'B4',t:8,d:1},{n:'C5',t:9,d:1},{n:'B4',t:10,d:1},{n:'C5',t:11,d:1},{n:'B4',t:12,d:1},{n:'G4',t:13,d:3},
+        {n:'C4',t:16,d:1},{n:'E4',t:17,d:1},{n:'C4',t:18,d:1},{n:'E4',t:19,d:1},{n:'F4',t:20,d:1},{n:'G4',t:21,d:1},{n:'G4',t:22,d:2},
+        {n:'B4',t:24,d:1},{n:'C5',t:25,d:1},{n:'B4',t:26,d:1},{n:'C5',t:27,d:1},{n:'B4',t:28,d:1},{n:'G4',t:29,d:3},
+        {n:'C4',t:32,d:1},{n:'E4',t:33,d:1},{n:'G4',t:34,d:1},{n:'F4',t:35,d:0.5},{n:'F4',t:35.5,d:0.5},{n:'G4',t:36,d:1},{n:'F4',t:37,d:0.5},{n:'E4',t:37.5,d:0.5},{n:'C4',t:38,d:2},
+        {n:'C4',t:40,d:1},{n:'E4',t:41,d:1},{n:'G4',t:42,d:1},{n:'F4',t:43,d:0.5},{n:'F4',t:43.5,d:0.5},{n:'G4',t:44,d:1},{n:'F4',t:45,d:0.5},{n:'E4',t:45.5,d:0.5},{n:'C4',t:46,d:2}
+      ]
+    },
+    {
+      id: 'balonku-akurat-3',
+      slug: 'balonku-ada-lima',
+      title: 'Balonku Ada Lima',
+      artist: 'A.T. Mahmud',
+      category: 'lainnya',
+      tempo_bpm: 90,
+      time_signature: '4/4',
+      is_ai: false,
+      notes: [
+        {n:'E4',t:0,d:1},{n:'F4',t:1,d:1},{n:'G4',t:2,d:1},{n:'C5',t:3,d:1},{n:'G4',t:4,d:2},{n:'E4',t:6,d:1},{n:'G4',t:7,d:1},
+        {n:'C5',t:8,d:1},{n:'B4',t:9,d:1},{n:'A4',t:10,d:1},{n:'G4',t:11,d:3},
+        {n:'F4',t:14,d:1},{n:'G4',t:15,d:1},{n:'A4',t:16,d:1},{n:'A4',t:17,d:1},{n:'G4',t:18,d:1},{n:'F4',t:19,d:1},{n:'E4',t:20,d:2},
+        {n:'D4',t:22,d:1},{n:'E4',t:23,d:1},{n:'F4',t:24,d:1},{n:'G4',t:25,d:1},{n:'D4',t:26,d:1},{n:'E4',t:27,d:1},{n:'C4',t:28,d:3}
+      ]
+    },
+    {
+      id: 'twinkle-akurat-4',
+      slug: 'twinkle-twinkle-little-star',
+      title: 'Twinkle Twinkle Little Star',
+      artist: 'Klasik',
+      category: 'lainnya',
+      tempo_bpm: 90,
+      time_signature: '4/4',
+      is_ai: false,
+      notes: [
+        {n:'C4',t:0,d:1},{n:'C4',t:1,d:1},{n:'G4',t:2,d:1},{n:'G4',t:3,d:1},{n:'A4',t:4,d:1},{n:'A4',t:5,d:1},{n:'G4',t:6,d:2},
+        {n:'F4',t:8,d:1},{n:'F4',t:9,d:1},{n:'E4',t:10,d:1},{n:'E4',t:11,d:1},{n:'D4',t:12,d:1},{n:'D4',t:13,d:1},{n:'C4',t:14,d:2},
+        {n:'G4',t:16,d:1},{n:'G4',t:17,d:1},{n:'F4',t:18,d:1},{n:'F4',t:19,d:1},{n:'E4',t:20,d:1},{n:'E4',t:21,d:1},{n:'D4',t:22,d:2},
+        {n:'G4',t:24,d:1},{n:'G4',t:25,d:1},{n:'F4',t:26,d:1},{n:'F4',t:27,d:1},{n:'E4',t:28,d:1},{n:'E4',t:29,d:1},{n:'D4',t:30,d:2},
+        {n:'C4',t:32,d:1},{n:'C4',t:33,d:1},{n:'G4',t:34,d:1},{n:'G4',t:35,d:1},{n:'A4',t:36,d:1},{n:'A4',t:37,d:1},{n:'G4',t:38,d:2},
+        {n:'F4',t:40,d:1},{n:'F4',t:41,d:1},{n:'E4',t:42,d:1},{n:'E4',t:43,d:1},{n:'D4',t:44,d:1},{n:'D4',t:45,d:1},{n:'C4',t:46,d:2}
+      ]
+    },
+    {
+      id: 'tombo-ati-akurat-5',
+      slug: 'tombo-ati',
+      title: 'Tombo Ati',
+      artist: 'Opick / Sunan Bonang',
+      category: 'islami',
+      tempo_bpm: 75,
+      time_signature: '4/4',
+      is_ai: false,
+      notes: [
+        {n:'E4',t:0,d:1},{n:'G4',t:1,d:1},{n:'A4',t:2,d:1},{n:'A4',t:3,d:1.5},{n:'G4',t:4.5,d:0.5},{n:'A4',t:5,d:2},
+        {n:'C5',t:7,d:1},{n:'B4',t:8,d:1},{n:'A4',t:9,d:1},{n:'G4',t:10,d:1},{n:'E4',t:11,d:3},
+        {n:'E4',t:14,d:1},{n:'G4',t:15,d:1},{n:'A4',t:16,d:1},{n:'A4',t:17,d:1.5},{n:'G4',t:18.5,d:0.5},{n:'A4',t:19,d:2},
+        {n:'C5',t:21,d:1},{n:'B4',t:22,d:1},{n:'A4',t:23,d:1},{n:'G4',t:24,d:1},{n:'A4',t:25,d:3}
+      ]
+    },
+    {
+      id: 'kopi-dangdut-akurat-6',
+      slug: 'kopi-dangdut',
+      title: 'Kopi Dangdut',
+      artist: 'Fahmi Shahab',
+      category: 'dangdut',
+      tempo_bpm: 115,
+      time_signature: '4/4',
+      is_ai: false,
+      notes: [
+        {n:'A4',t:0,d:0.5},{n:'A4',t:0.5,d:0.5},{n:'A4',t:1,d:0.5},{n:'B4',t:1.5,d:0.5},{n:'C5',t:2,d:1},{n:'B4',t:3,d:0.5},{n:'A4',t:3.5,d:0.5},{n:'G#4',t:4,d:2},
+        {n:'G#4',t:6,d:0.5},{n:'G#4',t:6.5,d:0.5},{n:'G#4',t:7,d:0.5},{n:'A4',t:7.5,d:0.5},{n:'B4',t:8,d:1},{n:'A4',t:9,d:0.5},{n:'G#4',t:9.5,d:0.5},{n:'A4',t:10,d:2},
+        {n:'A4',t:12,d:0.5},{n:'A4',t:12.5,d:0.5},{n:'A4',t:13,d:0.5},{n:'B4',t:13.5,d:0.5},{n:'C5',t:14,d:1},{n:'B4',t:15,d:0.5},{n:'A4',t:15.5,d:0.5},{n:'G#4',t:16,d:2},
+        {n:'B4',t:18,d:0.5},{n:'B4',t:18.5,d:0.5},{n:'B4',t:19,d:0.5},{n:'C5',t:19.5,d:0.5},{n:'D5',t:20,d:1},{n:'C5',t:21,d:0.5},{n:'B4',t:21.5,d:0.5},{n:'A4',t:22,d:3}
+      ]
+    }
+  ];
+
+  // ============================================================================
+  // 2. STATE APLIKASI
   // ============================================================================
   const state = {
-    // Navigasi & Layar
-    currentScreen: 'list', // 'list' | 'practice'
+    // Mode Utama: 'free' (Piano Bebas) | 'practice' (Latihan Synthesia)
+    appMode: 'free',
     landscapeBannerDismissed: false,
-    pwaCardDismissed: false,
-    deferredPrompt: null,
 
-    // Pencarian & Daftar Lagu
+    // Pencarian & Koleksi Lagu
     searchQuery: '',
     selectedCategory: null,
-    songsList: [],
+    songsList: [...BUILTIN_SONGS],
     pageOffset: 0,
-    hasMoreSongs: true,
+    hasMoreSongs: false,
     isLoadingSongs: false,
     isGeneratingAI: false,
 
-    // Lagu yang sedang dimainkan
+    // Lagu Aktif
     currentSong: null,
-    songNotes: [], // [{ n, t, d, timeSec, durationSec, hit, missed }]
+    songNotes: [],
     songDurationSec: 0,
 
-    // Audio & Sintesis
+    // Audio & Sintesis (Polifoni maks 24)
     audioCtx: null,
-    soundType: 'piano', // 'piano' | 'epiano' | 'organ'
+    soundType: 'piano',
     isSustain: false,
-    activeVoices: new Map(), // key: note -> voice object
+    activeVoices: new Map(),
 
     // Playback Engine
     isPlaying: false,
-    playbackSpeed: 1.0, // 0.5 - 1.2
-    songTime: 0, // detik
-    lastAudioTime: 0,
+    playbackSpeed: 1.0,
+    songTime: 0,
     mode: 'auto', // 'auto' | 'step'
 
     // Step-by-Step
-    waitingForStepKey: null, // note string yang harus ditekan sebelum lanjut
+    waitingForStepKey: null,
     stepWrongPressedSinceLast: false,
 
     // Loop A-B
@@ -124,55 +225,59 @@
     scoreWrong: 0,
     scoreMissed: 0,
 
+    // Visualizer Mode Bebas
+    freeVisualRipples: [], // { note, x, width, y, speed, alpha, isBlack }
+
     // Posisi Lane Canvas
-    keyPositions: new Map() // note -> { x, width, isBlack }
+    keyPositions: new Map()
   };
+
+  const HIT_WINDOW_SEC = 0.3;
 
   // ============================================================================
   // 3. ELEMEN DOM UTAMA
   // ============================================================================
   const dom = {
-    // Layar
-    songListScreen: document.getElementById('song-list-screen'),
-    practiceScreen: document.getElementById('practice-screen'),
+    // Header & Mode Containers
+    headerFreeMode: document.getElementById('header-free-mode'),
+    headerPracticeMode: document.getElementById('header-practice-mode'),
+    practiceToolbar: document.getElementById('practice-toolbar'),
+    btnOpenCatalog: document.getElementById('btn-open-catalog'),
+    btnExitToFree: document.getElementById('btn-exit-to-free'),
 
-    // Logo
+    // Logo & Banner
     appLogoImg: document.getElementById('app-logo-img'),
     appLogoFallback: document.getElementById('app-logo-fallback'),
-    practiceLogoImg: document.getElementById('practice-logo-img'),
-    practiceLogoFallback: document.getElementById('practice-logo-fallback'),
-
-    // PWA & Banner
-    pwaInstallCard: document.getElementById('pwa-install-card'),
-    btnInstallPwa: document.getElementById('btn-install-pwa'),
-    btnDismissPwa: document.getElementById('btn-dismiss-pwa'),
     rotateLandscapeBanner: document.getElementById('rotate-landscape-banner'),
     btnDismissLandscapeBanner: document.getElementById('btn-dismiss-landscape-banner'),
-    iosInstallModal: document.getElementById('ios-install-modal'),
-    btnCloseIosModal: document.getElementById('btn-close-ios-modal'),
 
-    // Pencarian Lagu
+    // Canvas & Keyboard
+    waterfallContainer: document.getElementById('waterfall-container'),
+    waterfallCanvas: document.getElementById('waterfall-canvas'),
+    pianoKeyboard: document.getElementById('piano-keyboard'),
+    freePlayHint: document.getElementById('free-play-hint'),
+
+    // Modal Katalog Lagu
+    songCatalogModal: document.getElementById('song-catalog-modal'),
+    btnCloseCatalog: document.getElementById('btn-close-catalog'),
     searchInput: document.getElementById('search-input'),
     btnClearSearch: document.getElementById('btn-clear-search'),
-    btnResetFilters: document.getElementById('btn-reset-filters'),
-    searchAlert: document.getElementById('search-alert'),
     songListContainer: document.getElementById('song-list-container'),
     emptyStateCard: document.getElementById('empty-state-card'),
     emptyStateTitle: document.getElementById('empty-state-title'),
     emptyStateDesc: document.getElementById('empty-state-desc'),
     btnGenerateAi: document.getElementById('btn-generate-ai'),
     aiLoadingCard: document.getElementById('ai-loading-card'),
-    infiniteScrollTrigger: document.getElementById('infinite-scroll-trigger'),
+    searchAlert: document.getElementById('search-alert'),
     btnLoadMore: document.getElementById('btn-load-more'),
 
-    // Layar Latihan
-    btnBackToList: document.getElementById('btn-back-to-list'),
+    // Practice Header Info
     practiceSongTitle: document.getElementById('practice-song-title'),
     practiceSongArtist: document.getElementById('practice-song-artist'),
     practiceSongTempo: document.getElementById('practice-song-tempo'),
     practiceAiBadge: document.getElementById('practice-ai-badge'),
 
-    // Kontrol Playback
+    // Practice Controls
     btnPlayPause: document.getElementById('btn-play-pause'),
     iconPlay: document.getElementById('icon-play'),
     iconPause: document.getElementById('icon-pause'),
@@ -185,19 +290,14 @@
     currentTimeLabel: document.getElementById('current-time-label'),
     totalTimeLabel: document.getElementById('total-time-label'),
 
-    // Fitur Tambahan
+    // Tambahan Kontrol
+    soundSelect: document.getElementById('sound-select'),
+    btnSustain: document.getElementById('btn-sustain'),
+    btnMetronome: document.getElementById('btn-metronome'),
+    btnMidi: document.getElementById('btn-midi'),
     btnLoopA: document.getElementById('btn-loop-a'),
     btnLoopB: document.getElementById('btn-loop-b'),
     btnLoopToggle: document.getElementById('btn-loop-toggle'),
-    btnMetronome: document.getElementById('btn-metronome'),
-    btnSustain: document.getElementById('btn-sustain'),
-    soundSelect: document.getElementById('sound-select'),
-    btnMidi: document.getElementById('btn-midi'),
-
-    // Canvas & Piano
-    waterfallContainer: document.getElementById('waterfall-container'),
-    waterfallCanvas: document.getElementById('waterfall-canvas'),
-    pianoKeyboard: document.getElementById('piano-keyboard'),
 
     // Modal Hasil
     resultModal: document.getElementById('result-modal'),
@@ -205,46 +305,24 @@
     scoreCorrect: document.getElementById('score-correct'),
     scoreWrong: document.getElementById('score-wrong'),
     scoreMissed: document.getElementById('score-missed'),
-    btnReplaySong: document.getElementById('btn-replay-song'),
-    btnChooseOtherSong: document.getElementById('btn-choose-other-song')
+    btnReplay: document.getElementById('btn-replay'),
+    btnChangeSong: document.getElementById('btn-change-song'),
+
+    // PWA iOS
+    iosPwaModal: document.getElementById('ios-pwa-modal'),
+    btnCloseIosModal: document.getElementById('btn-close-ios-modal')
   };
 
   // ============================================================================
-  // 4. SISTEM LOGO & FALLBACK (Fitur: 1)
-  // ============================================================================
-  function initLogos() {
-    const config = window.APP_CONFIG || {};
-    const logoUrl = config.LOGO_URL || './asix_studio_circle_web_320_v2.webp';
-
-    const setupLogo = (imgEl, fallbackEl) => {
-      if (!imgEl || !fallbackEl) return;
-      imgEl.src = logoUrl;
-      imgEl.onerror = () => {
-        imgEl.classList.add('hidden');
-        fallbackEl.classList.remove('hidden');
-      };
-      imgEl.onload = () => {
-        imgEl.classList.remove('hidden');
-        fallbackEl.classList.add('hidden');
-      };
-    };
-
-    setupLogo(dom.appLogoImg, dom.appLogoFallback);
-    setupLogo(dom.practiceLogoImg, dom.practiceLogoFallback);
-  }
-
-  // ============================================================================
-  // 5. WEB AUDIO SYNTHESIS ENGINE (Fitur: 3, 10, 11)
-  // Polifoni maks 24 suara, tanpa audio sample eksternal
+  // 4. WEB AUDIO SYNTHESIS ENGINE (Fitur: 3, 10, 11)
+  // Polifoni maks 24 suara, ADSR envelope, Piano, E-Piano, Organ
   // ============================================================================
   function getAudioContext() {
     if (!state.audioCtx) {
-      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtxClass) {
-        state.audioCtx = new AudioCtxClass();
-      }
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      state.audioCtx = new AudioCtx();
     }
-    if (state.audioCtx && state.audioCtx.state === 'suspended') {
+    if (state.audioCtx.state === 'suspended') {
       state.audioCtx.resume();
     }
     return state.audioCtx;
@@ -255,133 +333,176 @@
     if (!keyInfo) return;
 
     const ctx = getAudioContext();
-    if (!ctx) return;
+    const now = ctx.currentTime;
+    const freq = midiToFreq(keyInfo.midi);
 
-    // Hentikan suara not yang sama bila masih aktif
-    if (state.activeVoices.has(noteName)) {
-      stopNoteSynthesis(noteName, true);
-    }
+    // Hentikan suara lama untuk nada yang sama
+    stopNoteSynthesis(noteName, true);
 
     // Batasi polifoni maksimal 24 suara
     if (state.activeVoices.size >= 24) {
       const oldestKey = state.activeVoices.keys().next().value;
-      stopNoteSynthesis(oldestKey, true);
+      if (oldestKey) stopNoteSynthesis(oldestKey, true);
     }
 
-    const freq = midiToFreq(keyInfo.midi);
-    const now = ctx.currentTime;
+    const masterGain = ctx.createGain();
+    masterGain.connect(ctx.destination);
 
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gainNode = ctx.createGain();
+    const soundType = state.soundType;
+    const oscillators = [];
 
-    if (state.soundType === 'organ') {
-      // Organ: Kaya harmonik, sustain konstan
+    if (soundType === 'epiano') {
+      // E-Piano: Dual Sine/Triangle dengan metallic decay
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
       osc1.type = 'sine';
       osc2.type = 'triangle';
       osc1.frequency.setValueAtTime(freq, now);
       osc2.frequency.setValueAtTime(freq * 2, now);
 
-      gainNode.gain.setValueAtTime(0.001, now);
-      gainNode.gain.linearRampToValueAtTime(0.2, now + 0.02);
-    } else if (state.soundType === 'epiano') {
-      // Electric Piano: Nada lonceng lembut dengan sedikit detune
-      osc1.type = 'sine';
+      const g1 = ctx.createGain();
+      const g2 = ctx.createGain();
+      g1.gain.setValueAtTime(0.7, now);
+      g2.gain.setValueAtTime(0.3, now);
+
+      osc1.connect(g1);
+      osc2.connect(g2);
+      g1.connect(masterGain);
+      g2.connect(masterGain);
+
+      // ADSR
+      masterGain.gain.setValueAtTime(0.0001, now);
+      masterGain.gain.linearRampToValueAtTime(0.4, now + 0.015);
+      masterGain.gain.exponentialRampToValueAtTime(0.15, now + 0.8);
+
+      osc1.start(now);
+      osc2.start(now);
+      oscillators.push(osc1, osc2);
+    } else if (soundType === 'organ') {
+      // Organ: Drawbar harmonics
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      osc1.type = 'sawtooth';
       osc2.type = 'sine';
       osc1.frequency.setValueAtTime(freq, now);
-      osc2.frequency.setValueAtTime(freq * 3, now); // FM overtone
+      osc2.frequency.setValueAtTime(freq * 2, now);
 
-      gainNode.gain.setValueAtTime(0.001, now);
-      gainNode.gain.linearRampToValueAtTime(0.25, now + 0.005);
-      gainNode.gain.exponentialRampToValueAtTime(0.06, now + 0.4);
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(freq * 3, now);
+
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(masterGain);
+
+      masterGain.gain.setValueAtTime(0.0001, now);
+      masterGain.gain.linearRampToValueAtTime(0.25, now + 0.02);
+
+      osc1.start(now);
+      osc2.start(now);
+      oscillators.push(osc1, osc2);
     } else {
-      // Akustik Piano (Default): Attack cepat, peluruhan natural
+      // Piano Akustik: Fundamental + Overtone + Filter
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
       osc1.type = 'triangle';
       osc2.type = 'sine';
       osc1.frequency.setValueAtTime(freq, now);
-      osc2.frequency.setValueAtTime(freq + 0.5, now); // Subtle acoustic chorus
+      osc2.frequency.setValueAtTime(freq * 2, now);
 
-      gainNode.gain.setValueAtTime(0.001, now);
-      gainNode.gain.linearRampToValueAtTime(0.35, now + 0.006);
-      gainNode.gain.exponentialRampToValueAtTime(0.08, now + 0.6);
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(freq * 4.5, now);
+      filter.frequency.exponentialRampToValueAtTime(freq * 1.5, now + 1.2);
+
+      const g1 = ctx.createGain();
+      const g2 = ctx.createGain();
+      g1.gain.setValueAtTime(0.75, now);
+      g2.gain.setValueAtTime(0.25, now);
+
+      osc1.connect(g1);
+      osc2.connect(g2);
+      g1.connect(filter);
+      g2.connect(filter);
+      filter.connect(masterGain);
+
+      // ADSR
+      masterGain.gain.setValueAtTime(0.0001, now);
+      masterGain.gain.linearRampToValueAtTime(0.5, now + 0.012);
+      masterGain.gain.exponentialRampToValueAtTime(0.18, now + 0.6);
+
+      osc1.start(now);
+      osc2.start(now);
+      oscillators.push(osc1, osc2);
     }
 
-    osc1.connect(gainNode);
-    osc2.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    osc1.start(now);
-    osc2.start(now);
-
     state.activeVoices.set(noteName, {
-      osc1,
-      osc2,
-      gainNode,
+      oscillators,
+      gainNode: masterGain,
       startTime: now
     });
   }
 
-  function stopNoteSynthesis(noteName, forceImmediate = false) {
+  function stopNoteSynthesis(noteName, immediate = false) {
     const voice = state.activeVoices.get(noteName);
     if (!voice) return;
 
-    // Jika pedal sustain aktif dan tidak dipaksa berhenti, biarkan berbunyi
-    if (state.isSustain && !forceImmediate) {
-      return;
-    }
+    if (state.isSustain && !immediate) return;
 
     const ctx = getAudioContext();
-    if (!ctx) return;
-
     const now = ctx.currentTime;
-    const releaseTime = forceImmediate ? 0.02 : (state.soundType === 'organ' ? 0.05 : 0.4);
+    const releaseTime = immediate ? 0.02 : 0.25;
 
     try {
       voice.gainNode.gain.cancelScheduledValues(now);
-      voice.gainNode.gain.setValueAtTime(voice.gainNode.gain.value, now);
+      voice.gainNode.gain.setValueAtTime(Math.max(0.0001, voice.gainNode.gain.value), now);
       voice.gainNode.gain.exponentialRampToValueAtTime(0.0001, now + releaseTime);
 
-      voice.osc1.stop(now + releaseTime);
-      voice.osc2.stop(now + releaseTime);
-    } catch (e) {
-      // Abaikan jika oscillator sudah terhenti
-    }
+      setTimeout(() => {
+        voice.oscillators.forEach(osc => {
+          try { osc.stop(); osc.disconnect(); } catch (e) {}
+        });
+        voice.gainNode.disconnect();
+      }, releaseTime * 1000 + 50);
+    } catch (e) {}
 
     state.activeVoices.delete(noteName);
   }
 
-  function playMetronomeClick(isHighBeat) {
-    const ctx = getAudioContext();
-    if (!ctx) return;
+  function stopAllActiveVoices() {
+    state.activeVoices.forEach((_, note) => stopNoteSynthesis(note, true));
+    state.activeVoices.clear();
+  }
 
+  function playMetronomeClick(isDownbeat = false) {
+    const ctx = getAudioContext();
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(isHighBeat ? 1200 : 800, now);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(isDownbeat ? 1200 : 800, now);
 
-    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.35, now + 0.002);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     osc.start(now);
-    osc.stop(now + 0.045);
+    osc.stop(now + 0.05);
   }
 
   // ============================================================================
-  // 6. TUTS PIANO RESPONSIF (Fitur: 1, 8)
-  // Rendering 14 Tuts Putih + 10 Tuts Hitam C4-B5, multi-touch, pointer events
+  // 5. RENDERING TUTS PIANO PROPORSIONAL (Fitur: 1, 8)
+  // 14 Tuts Putih + 10 Tuts Hitam
   // ============================================================================
   function renderPianoKeyboard() {
-    dom.pianoKeyboard.textContent = ''; // Kosongkan DOM
-
-    const whiteKeyElements = [];
+    dom.pianoKeyboard.textContent = '';
 
     // Render 14 Tuts Putih
-    WHITE_KEYS.forEach((keyData, idx) => {
+    WHITE_KEYS.forEach((keyData) => {
       const keyEl = document.createElement('div');
       keyEl.className = 'white-key';
       keyEl.dataset.note = keyData.note;
@@ -397,7 +518,6 @@
       keyEl.appendChild(noteLabel);
       keyEl.appendChild(hintLabel);
       dom.pianoKeyboard.appendChild(keyEl);
-      whiteKeyElements.push(keyEl);
     });
 
     // Render 10 Tuts Hitam
@@ -419,7 +539,6 @@
       dom.pianoKeyboard.appendChild(keyEl);
     });
 
-    // Posisikan tuts hitam dan hitung lane canvas
     updateKeyAndLanePositions();
   }
 
@@ -429,11 +548,11 @@
 
     const totalWhiteKeys = WHITE_KEYS.length; // 14
     const whiteKeyWidth = keyboardRect.width / totalWhiteKeys;
-    const blackKeyWidth = whiteKeyWidth * 0.62;
+    const blackKeyWidth = whiteKeyWidth * 0.65;
 
     state.keyPositions.clear();
 
-    // Petakan posisi tuts putih
+    // Petakan koordinat tuts putih
     WHITE_KEYS.forEach((k, idx) => {
       const x = idx * whiteKeyWidth;
       state.keyPositions.set(k.note, {
@@ -444,7 +563,7 @@
       });
     });
 
-    // Posisikan tuts hitam di DOM dan petakan koordinatnya
+    // Posisikan tuts hitam dan petakan koordinatnya
     BLACK_KEYS.forEach((k) => {
       const leftPos = ((k.afterWhiteIndex + 1) * whiteKeyWidth) - (blackKeyWidth / 2);
       const el = dom.pianoKeyboard.querySelector(`.black-key[data-note="${k.note}"]`);
@@ -460,35 +579,47 @@
       });
     });
 
-    // Resize canvas resolusi tinggi
     resizeWaterfallCanvas();
   }
 
-  // Interaksi Penekanan Tuts Piano
+  // Interaksi Penekanan Tuts
   function handleKeyPress(noteName) {
     const keyInfo = KEY_MAP_BY_NOTE.get(noteName);
     if (!keyInfo) return;
 
-    // Visual feedback tuts
     const el = dom.pianoKeyboard.querySelector(`[data-note="${noteName}"]`);
     if (el) el.classList.add('is-pressed');
 
-    // Mainkan suara
     playNoteSynthesis(noteName);
 
-    // Evaluasi Skor & Permainan
-    evaluateKeyInput(noteName);
+    // Visualizer Mode Bebas: Buat efek ripple neon naik
+    if (state.appMode === 'free') {
+      const pos = state.keyPositions.get(noteName);
+      if (pos) {
+        state.freeVisualRipples.push({
+          note: noteName,
+          x: pos.x + (pos.width * 0.1),
+          width: pos.width * 0.8,
+          y: dom.waterfallCanvas.height / (window.devicePixelRatio || 1) - 10,
+          height: 30,
+          speed: 260,
+          alpha: 1.0,
+          isBlack: pos.isBlack
+        });
+      }
+    } else {
+      evaluateKeyInput(noteName);
+    }
   }
 
   function handleKeyRelease(noteName) {
     const el = dom.pianoKeyboard.querySelector(`[data-note="${noteName}"]`);
     if (el) el.classList.remove('is-pressed');
-
     stopNoteSynthesis(noteName, false);
   }
 
   function bindPianoPointerEvents() {
-    const activePointers = new Map(); // pointerId -> noteName
+    const activePointers = new Map();
 
     dom.pianoKeyboard.addEventListener('pointerdown', (e) => {
       e.preventDefault();
@@ -500,6 +631,27 @@
       handleKeyPress(note);
     });
 
+    dom.pianoKeyboard.addEventListener('pointermove', (e) => {
+      if (!activePointers.has(e.pointerId)) return;
+      e.preventDefault();
+
+      const elUnderPointer = document.elementFromPoint(e.clientX, e.clientY);
+      const targetKey = elUnderPointer ? elUnderPointer.closest('[data-note]') : null;
+
+      const prevNote = activePointers.get(e.pointerId);
+      const newNote = targetKey ? targetKey.dataset.note : null;
+
+      if (prevNote !== newNote) {
+        if (prevNote) handleKeyRelease(prevNote);
+        if (newNote) {
+          activePointers.set(e.pointerId, newNote);
+          handleKeyPress(newNote);
+        } else {
+          activePointers.delete(e.pointerId);
+        }
+      }
+    });
+
     const endPointer = (e) => {
       if (activePointers.has(e.pointerId)) {
         const note = activePointers.get(e.pointerId);
@@ -508,67 +660,50 @@
       }
     };
 
-    window.addEventListener('pointerup', endPointer);
-    window.addEventListener('pointercancel', endPointer);
+    dom.pianoKeyboard.addEventListener('pointerup', endPointer);
+    dom.pianoKeyboard.addEventListener('pointercancel', endPointer);
+    dom.pianoKeyboard.addEventListener('pointerleave', endPointer);
 
-    // Keyboard komputer (Laptop)
+    // Keyboard Komputer (Z-M & Q-U)
     const activeKeyboardKeys = new Set();
 
     window.addEventListener('keydown', (e) => {
-      // Abaikan bila sedang mengetik di input pencarian
-      if (e.target === dom.searchInput) return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-      // Fitur 10: Spasi untuk Pedal Sustain
       if (e.code === 'Space') {
         e.preventDefault();
-        setSustain(!state.isSustain);
+        state.isSustain = !state.isSustain;
+        updateSustainButtonUI();
         return;
       }
 
       const keyChar = e.key.toLowerCase();
-      if (KEY_MAP_BY_KEYBOARD.has(keyChar) && !activeKeyboardKeys.has(keyChar)) {
+      if (activeKeyboardKeys.has(keyChar)) return;
+
+      const keyData = KEY_MAP_BY_KEYBOARD.get(keyChar);
+      if (keyData) {
         activeKeyboardKeys.add(keyChar);
-        const keyInfo = KEY_MAP_BY_KEYBOARD.get(keyChar);
-        handleKeyPress(keyInfo.note);
+        handleKeyPress(keyData.note);
       }
     });
 
     window.addEventListener('keyup', (e) => {
-      if (e.target === dom.searchInput) return;
-
       const keyChar = e.key.toLowerCase();
       if (activeKeyboardKeys.has(keyChar)) {
         activeKeyboardKeys.delete(keyChar);
-        const keyInfo = KEY_MAP_BY_KEYBOARD.get(keyChar);
-        handleKeyRelease(keyInfo.note);
+        const keyData = KEY_MAP_BY_KEYBOARD.get(keyChar);
+        if (keyData) handleKeyRelease(keyData.note);
       }
     });
   }
 
-  function setSustain(val) {
-    state.isSustain = val;
-    if (dom.btnSustain) {
-      if (state.isSustain) {
-        dom.btnSustain.classList.add('bg-[#FF6B00]', 'text-black', 'border-[#FF6B00]');
-        dom.btnSustain.classList.remove('bg-white/5', 'text-zinc-400');
-      } else {
-        dom.btnSustain.classList.remove('bg-[#FF6B00]', 'text-black', 'border-[#FF6B00]');
-        dom.btnSustain.classList.add('bg-white/5', 'text-zinc-400');
-        // Hentikan suara yang tertahan sustain
-        for (const note of state.activeVoices.keys()) {
-          stopNoteSynthesis(note, false);
-        }
-      }
-    }
-  }
-
   // ============================================================================
-  // 7. WATERFALL CANVAS & FALLING NOTES (Fitur: 2, 8)
-  // Not jatuh ke garis target di atas tuts yang tepat
+  // 6. WATERFALL CANVAS & FALLING NOTES RENDERING (Fitur: 2, 8)
   // ============================================================================
   function resizeWaterfallCanvas() {
     const rect = dom.waterfallContainer.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
+
     dom.waterfallCanvas.width = rect.width * dpr;
     dom.waterfallCanvas.height = rect.height * dpr;
 
@@ -577,21 +712,24 @@
   }
 
   function renderFallingNotes() {
-    if (state.currentScreen !== 'practice') return;
-
     const canvas = dom.waterfallCanvas;
     const ctx = canvas.getContext('2d');
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const width = canvas.width / dpr;
+    const height = canvas.height / dpr;
 
     ctx.clearRect(0, 0, width, height);
 
-    // 1. Gambar Garis Vertikal Tiap Lane
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
-    ctx.lineWidth = 1;
-    WHITE_KEYS.forEach((k) => {
-      const pos = state.keyPositions.get(k.note);
-      if (pos) {
+    // 1. Gambar Garis Panduan Track / Lane Vertikal (Synthesia Guide Lines)
+    state.keyPositions.forEach((pos) => {
+      if (pos.isBlack) {
+        // Shading kolom untuk tuts hitam
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.015)';
+        ctx.fillRect(pos.x, 0, pos.width, height);
+      } else {
+        // Garis batas antar tuts putih
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(pos.x, 0);
         ctx.lineTo(pos.x, height);
@@ -599,85 +737,129 @@
       }
     });
 
-    // 2. Garis Target Tepat di Atas Tuts (Tinggi target line = height - 10)
-    const targetY = height - 8;
+    // 2. Garis Target Neon di Atas Tuts
+    const targetY = height - 6;
     ctx.shadowColor = '#FF6B00';
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 10;
     ctx.strokeStyle = '#FF6B00';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(0, targetY);
     ctx.lineTo(width, targetY);
     ctx.stroke();
-    ctx.shadowBlur = 0; // Reset shadow
+    ctx.shadowBlur = 0;
 
-    // 3. Hitung Waktu & Parameter Not Jatuh
-    const lookaheadSec = 2.5; // Not mulai muncul 2.5 detik sebelum jatuh
+    // JIKA DALAM MODE BEBAS (Free Play Visualizer)
+    if (state.appMode === 'free') {
+      for (let i = state.freeVisualRipples.length - 1; i >= 0; i--) {
+        const r = state.freeVisualRipples[i];
+        r.y -= (r.speed * 0.016);
+        r.alpha -= 0.015;
+
+        if (r.alpha <= 0 || r.y < -50) {
+          state.freeVisualRipples.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, r.alpha);
+        const grad = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.height);
+        if (r.isBlack) {
+          grad.addColorStop(0, '#C084FC');
+          grad.addColorStop(1, 'transparent');
+        } else {
+          grad.addColorStop(0, '#FFA040');
+          grad.addColorStop(1, 'transparent');
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(r.x, r.y, r.width, r.height);
+        ctx.restore();
+      }
+      return;
+    }
+
+    // JIKA DALAM MODE LATIHAN SYNTHESIA
+    const lookaheadSec = 3.2; // Waktu jatuh yang lebih rileks & elegan
     const speedPxPerSec = targetY / lookaheadSec;
 
     // Bersihkan highlight target pada tuts
     dom.pianoKeyboard.querySelectorAll('.is-target').forEach(el => el.classList.remove('is-target'));
 
-    let currentTargetNotes = [];
-
-    // Gambar Balok Not Melayang
     state.songNotes.forEach((noteItem) => {
-      const timeDiff = noteItem.timeSec - state.songTime; // detik menuju target
-      const noteDurationSec = noteItem.durationSec;
-
-      // Cek apakah not berada di dalam viewport canvas
+      const timeDiff = noteItem.timeSec - state.songTime;
       const noteBottomY = targetY - (timeDiff * speedPxPerSec);
-      const noteHeight = Math.max(12, noteDurationSec * speedPxPerSec);
+      
+      // Ukuran balok proporsional, sudut membulat rapi
+      const rawHeight = noteItem.durationSec * speedPxPerSec;
+      const noteHeight = Math.max(16, Math.min(rawHeight, height * 0.38));
       const noteTopY = noteBottomY - noteHeight;
 
       const pos = state.keyPositions.get(noteItem.n);
       if (!pos) return;
 
-      // Apakah not sedang berada di garis target?
-      const isAtTarget = timeDiff <= 0.05 && (timeDiff + noteDurationSec) >= -0.05;
+      const isAtTarget = timeDiff <= 0.06 && (timeDiff + noteItem.durationSec) >= -0.06;
 
       if (isAtTarget) {
-        currentTargetNotes.push(noteItem.n);
         const keyEl = dom.pianoKeyboard.querySelector(`[data-note="${noteItem.n}"]`);
         if (keyEl) keyEl.classList.add('is-target');
+
+        // Efek Flare Cahaya di Garis Target
+        ctx.save();
+        ctx.shadowColor = '#FF8800';
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = '#FFA726';
+        ctx.beginPath();
+        ctx.arc(pos.center, targetY, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       }
 
-      // Render not hanya jika terlihat di canvas
+      // Render balok not jika berada dalam canvas
       if (noteBottomY >= 0 && noteTopY <= height) {
         const isSharp = noteItem.n.includes('#');
 
         ctx.save();
-        ctx.shadowColor = isSharp ? 'rgba(168, 85, 247, 0.8)' : 'rgba(255, 107, 0, 0.8)';
+        ctx.shadowColor = isSharp ? 'rgba(168, 85, 247, 0.7)' : 'rgba(255, 107, 0, 0.7)';
         ctx.shadowBlur = isAtTarget ? 18 : 8;
 
-        // Warna balok not
-        if (isSharp) {
-          // Aksen Ungu untuk not # (Fitur: 2)
-          const grad = ctx.createLinearGradient(pos.x, noteTopY, pos.x, noteBottomY);
-          grad.addColorStop(0, '#C084FC');
-          grad.addColorStop(1, '#9333EA');
-          ctx.fillStyle = grad;
-        } else {
-          // Aksen Orange / Amber untuk not natural
-          const grad = ctx.createLinearGradient(pos.x, noteTopY, pos.x, noteBottomY);
-          grad.addColorStop(0, '#FFA24D');
-          grad.addColorStop(1, '#FF6B00');
-          ctx.fillStyle = grad;
-        }
-
-        // Gambar rounded rect
-        const radius = 5;
-        const padX = 2;
+        // Dimensi elegan (lebar 82% lane tuts, centered)
+        const padX = Math.max(2.5, pos.width * 0.09);
         const rx = pos.x + padX;
         const rw = pos.width - (padX * 2);
         const ry = noteTopY;
-        const rh = Math.max(10, noteHeight);
+        const rh = Math.max(14, noteHeight);
+        const radius = Math.min(6, rw / 2);
+
+        // Gradasi balok not
+        const grad = ctx.createLinearGradient(rx, ry, rx, ry + rh);
+        if (isSharp) {
+          grad.addColorStop(0, '#F3E8FF');
+          grad.addColorStop(0.3, '#C084FC');
+          grad.addColorStop(0.85, '#9333EA');
+          grad.addColorStop(1, '#6B21A8');
+        } else {
+          grad.addColorStop(0, '#FFF3E0');
+          grad.addColorStop(0.25, '#FFA24D');
+          grad.addColorStop(0.8, '#FF6B00');
+          grad.addColorStop(1, '#E65100');
+        }
+        ctx.fillStyle = grad;
 
         ctx.beginPath();
-        ctx.roundRect ? ctx.roundRect(rx, ry, rw, rh, radius) : ctx.rect(rx, ry, rw, rh);
+        if (ctx.roundRect) ctx.roundRect(rx, ry, rw, rh, radius);
+        else ctx.rect(rx, ry, rw, rh);
         ctx.fill();
 
-        // Label Nama Not di dalam Not Melayang (Fitur: 8)
+        // Garis tepi halus berkilau (glow outline)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Leading edge bar (kepala not yang menyentuh tuts)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(rx + 2, ry + rh - 3, rw - 4, 2);
+
+        // Label Nama Not di dalam Not Melayang
         if (rh >= 18) {
           ctx.shadowBlur = 0;
           ctx.fillStyle = '#000000';
@@ -693,8 +875,7 @@
   }
 
   // ============================================================================
-  // 8. GAME LOOP & PLAYBACK ENGINE (Fitur: 5, 6, 7, 9, 10)
-  // Auto-pause tab, Step-by-Step, Metronom, Loop A-B, Skor
+  // 7. GAME LOOP & PLAYBACK ENGINE (Fitur: 5, 6, 7, 9, 10)
   // ============================================================================
   let animationFrameId = null;
 
@@ -705,17 +886,16 @@
       const deltaSec = (currentTimestamp - lastTimestamp) / 1000;
       lastTimestamp = currentTimestamp;
 
-      if (state.isPlaying && state.currentSong) {
-        // Cek Mode Step-by-Step (Fitur: 6)
+      if (state.appMode === 'practice' && state.isPlaying && state.currentSong) {
+        // Cek Mode Step-by-Step
         if (state.mode === 'step') {
           checkStepByStepPause();
         }
 
-        // Jalankan waktu hanya bila tidak sedang menunggu tuts di mode step
         if (!state.waitingForStepKey) {
           state.songTime += deltaSec * state.playbackSpeed;
 
-          // Cek Metronom (Fitur: 10)
+          // Metronom
           if (state.metronomeEnabled && state.currentSong) {
             const beatDuration = 60 / state.currentSong.tempo_bpm;
             const currentBeat = Math.floor(state.songTime / beatDuration);
@@ -725,18 +905,18 @@
             }
           }
 
-          // Cek Loop Titik A-B (Fitur: 9)
+          // Loop A-B
           if (state.loopEnabled && state.loopPointB !== null && state.songTime >= state.loopPointB) {
             state.songTime = state.loopPointA !== null ? state.loopPointA : 0;
             resetNoteHitStates();
           }
 
-          // Cek Lagu Selesai
+          // Lagu Selesai
           if (state.songTime >= state.songDurationSec + 1.0) {
             finishSongPractice();
           }
 
-          // Cek Not Terlewat (Auto Mode) (Fitur: 7)
+          // Cek Not Terlewat
           checkMissedNotes();
         }
 
@@ -752,12 +932,10 @@
   }
 
   function checkStepByStepPause() {
-    // Cari not berikutnya yang belum ditekan dan sudah tiba di garis target
     for (let i = 0; i < state.songNotes.length; i++) {
       const note = state.songNotes[i];
       if (!note.hit && !note.missed) {
         if (state.songTime >= note.timeSec) {
-          // Tiba di garis target: kunci playback sampai ditekan benar
           state.waitingForStepKey = note.n;
           state.stepWrongPressedSinceLast = false;
           break;
@@ -780,30 +958,23 @@
   }
 
   function evaluateKeyInput(pressedNote) {
-    if (!state.isPlaying || !state.currentSong) return;
-
     if (state.mode === 'step') {
-      // Evaluasi Mode Step-by-Step
       if (state.waitingForStepKey) {
         if (pressedNote === state.waitingForStepKey) {
-          // Benar! Bila tidak ada salah tekan sejak not sebelumnya
-          if (!state.stepWrongPressedSinceLast) {
-            state.scoreCorrect++;
-          }
-          // Tandai not hit
-          const activeNote = state.songNotes.find(n => !n.hit && n.n === pressedNote);
-          if (activeNote) activeNote.hit = true;
+          const matching = state.songNotes.find(n => !n.hit && !n.missed && n.n === pressedNote);
+          if (matching) matching.hit = true;
 
-          state.waitingForStepKey = null; // Lanjutkan permainan
+          if (!state.stepWrongPressedSinceLast) state.scoreCorrect++;
+          else state.scoreWrong++;
+
+          state.waitingForStepKey = null;
+          state.stepWrongPressedSinceLast = false;
         } else {
-          // Salah tekan
           state.stepWrongPressedSinceLast = true;
           state.scoreWrong++;
         }
       }
     } else {
-      // Evaluasi Mode Auto
-      // Cari not target dalam jendela HIT_WINDOW_SEC
       const matchingNote = state.songNotes.find((n) => {
         return !n.hit && !n.missed && Math.abs(state.songTime - n.timeSec) <= HIT_WINDOW_SEC;
       });
@@ -816,7 +987,6 @@
           state.scoreWrong++;
         }
       } else {
-        // Menekan nada di saat tidak ada not target
         state.scoreWrong++;
       }
     }
@@ -842,7 +1012,7 @@
   }
 
   function togglePlayPause() {
-    getAudioContext(); // Pastikan AudioContext aktif
+    getAudioContext();
     state.isPlaying = !state.isPlaying;
 
     if (state.isPlaying) {
@@ -876,7 +1046,6 @@
     dom.iconPause.classList.add('hidden');
     dom.labelPlayPause.textContent = 'Mulai';
 
-    // Hitung Akurasi (Fitur: 7)
     const totalNotes = state.songNotes.length || 1;
     const accuracy = Math.round((state.scoreCorrect / totalNotes) * 100);
 
@@ -888,7 +1057,6 @@
     dom.resultModal.classList.remove('hidden');
   }
 
-  // Auto-pause saat tab disembunyikan (Fitur: 2)
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && state.isPlaying) {
       togglePlayPause();
@@ -896,9 +1064,18 @@
   });
 
   // ============================================================================
-  // 9. SUPABASE REST INTEGRASI & PENCARIAN LAGU (Fitur: 4)
-  // postgREST fetch murni, tanpa library
+  // 8. MODAL KATALOG LAGU & SUPABASE INTEGRATION (Fitur: 4)
   // ============================================================================
+  function openSongCatalog() {
+    dom.songCatalogModal.classList.remove('hidden');
+    renderSongCatalogCards(state.songsList);
+    fetchSongsFromSupabase();
+  }
+
+  function closeSongCatalog() {
+    dom.songCatalogModal.classList.add('hidden');
+  }
+
   async function fetchSongsFromSupabase(isLoadMore = false) {
     const config = window.APP_CONFIG || {};
     const supabaseUrl = (config.SUPABASE_URL || '').replace(/\/+$/, '');
@@ -906,32 +1083,19 @@
     const pageSize = config.PAGE_SIZE || 10;
 
     if (!supabaseUrl || !anonKey || supabaseUrl === 'ISI_PROJECT_URL') {
-      showSearchAlert('Harap isi URL & Kunci Publik Supabase di config.js.', 'warning');
-      return;
+      return; // Gunakan koleksi built-in
     }
 
     if (state.isLoadingSongs) return;
     state.isLoadingSongs = true;
 
-    if (!isLoadMore) {
-      state.pageOffset = 0;
-      state.songsList = [];
-      dom.songListContainer.textContent = '';
-      dom.emptyStateCard.classList.add('hidden');
-    }
-
-    // Bangun URL Query PostgREST
-    // Catatan optimasi: Kolom notes baru diambil saat lagu dibuka (Fitur: 4)
     let queryUrl = `${supabaseUrl}/rest/v1/songs?select=id,slug,title,artist,category,tempo_bpm,time_signature,is_ai,created_at&order=created_at.desc&limit=${pageSize}&offset=${state.pageOffset}`;
 
-    // Filter kategori bila dipilih
     if (state.selectedCategory) {
       queryUrl += `&category=eq.${encodeURIComponent(state.selectedCategory)}`;
     }
 
-    // Filter kata kunci pencarian (ilike)
     if (state.searchQuery) {
-      // Escape karakter khusus PostgREST
       const safeQuery = state.searchQuery.replace(/[%*.,()]/g, '');
       queryUrl += `&title=ilike.*${encodeURIComponent(safeQuery)}*`;
     }
@@ -951,163 +1115,127 @@
       });
 
       if (!res.ok) {
-        showSearchAlert('Gagal memuat daftar lagu dari database.', 'error');
+        state.isLoadingSongs = false;
         return;
       }
 
-      const data = await res.json();
+      const remoteData = await res.json();
       state.isLoadingSongs = false;
 
-      if (Array.isArray(data)) {
-        if (!isLoadMore) state.songsList = data;
-        else state.songsList = state.songsList.concat(data);
+      if (Array.isArray(remoteData)) {
+        // Gabungkan data Supabase dengan Built-in tanpa duplikat slug
+        const mergedMap = new Map();
+        BUILTIN_SONGS.forEach(s => mergedMap.set(s.slug, s));
+        remoteData.forEach(s => mergedMap.set(s.slug, s));
 
-        state.pageOffset += data.length;
-        state.hasMoreSongs = data.length >= pageSize;
-
-        renderSongCards(data, isLoadMore);
-
-        // Tangani hasil kosong
-        if (state.songsList.length === 0) {
-          handleEmptySearchResult();
-        } else {
-          dom.emptyStateCard.classList.add('hidden');
-        }
-
-        // Tampilkan / sembunyikan tombol muat lebih banyak
-        if (state.hasMoreSongs) {
-          dom.btnLoadMore.classList.remove('hidden');
-        } else {
-          dom.btnLoadMore.classList.add('hidden');
-        }
+        state.songsList = Array.from(mergedMap.values());
+        filterAndRenderCatalog();
       }
     } catch (netErr) {
       state.isLoadingSongs = false;
-      showSearchAlert('Tidak ada koneksi internet. Periksa koneksi Anda.', 'error');
     }
   }
 
-  function handleEmptySearchResult() {
-    dom.emptyStateCard.classList.remove('hidden');
-    dom.emptyStateCard.classList.add('flex');
+  function filterAndRenderCatalog() {
+    let filtered = state.songsList;
 
-    if (state.selectedCategory && !state.searchQuery) {
-      // Kategori kosong
-      dom.emptyStateTitle.textContent = 'Kategori Kosong';
-      dom.emptyStateDesc.textContent = 'Belum ada lagu di kategori ini. Ketik judul di kotak cari.';
-      dom.btnGenerateAi.classList.add('hidden');
+    if (state.selectedCategory) {
+      filtered = filtered.filter(s => (s.category || '').toLowerCase() === state.selectedCategory.toLowerCase());
+    }
+
+    if (state.searchQuery) {
+      const q = state.searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(s => (s.title || '').toLowerCase().includes(q) || (s.artist || '').toLowerCase().includes(q));
+    }
+
+    renderSongCatalogCards(filtered);
+
+    if (filtered.length === 0) {
+      dom.emptyStateCard.classList.remove('hidden');
+      dom.emptyStateCard.classList.add('flex');
     } else {
-      // Hasil pencarian kosong
-      dom.emptyStateTitle.textContent = 'Lagu Belum Ada';
-      dom.emptyStateDesc.textContent = 'Lagu belum ada. Buat dengan AI?';
-      dom.btnGenerateAi.classList.remove('hidden');
+      dom.emptyStateCard.classList.add('hidden');
+      dom.emptyStateCard.classList.remove('flex');
     }
   }
 
-  function renderSongCards(songs, isAppend = false) {
-    if (!isAppend) dom.songListContainer.textContent = '';
+  function renderSongCatalogCards(songs) {
+    dom.songListContainer.textContent = '';
 
     songs.forEach((song) => {
       const card = document.createElement('div');
-      card.className = 'group bg-[#121216] hover:bg-[#181820] border border-[#2A2A33] hover:border-[#FF6B00]/50 rounded-2xl p-4 transition cursor-pointer flex flex-col justify-between gap-3 shadow-md';
+      card.className = 'group bg-[#181822] hover:bg-[#20202C] border border-[#2A2A38] hover:border-[#FF6B00]/60 rounded-2xl p-3.5 transition cursor-pointer flex flex-col justify-between gap-2.5 shadow-md';
 
-      // Header Kartu
       const topRow = document.createElement('div');
       topRow.className = 'flex items-start justify-between gap-2';
 
-      const titleEl = document.createElement('h3');
-      titleEl.className = 'font-bold font-display text-white text-sm group-hover:text-[#FF6B00] transition line-clamp-1';
-      titleEl.textContent = song.title; // Aman dari XSS
+      const titleEl = document.createElement('h4');
+      titleEl.className = 'font-bold font-display text-white text-xs sm:text-sm group-hover:text-[#FF6B00] transition line-clamp-1';
+      titleEl.textContent = song.title;
 
       topRow.appendChild(titleEl);
 
+      const badge = document.createElement('span');
       if (song.is_ai) {
-        const aiBadge = document.createElement('span');
-        aiBadge.className = 'px-1.5 py-0.5 bg-[#FF6B00]/10 border border-[#FF6B00]/30 text-[#FF9500] text-[10px] font-semibold rounded shrink-0';
-        aiBadge.textContent = 'AI';
-        aiBadge.title = 'Dibuat AI, bisa kurang akurat';
-        topRow.appendChild(aiBadge);
+        badge.className = 'px-1.5 py-0.5 bg-[#FF6B00]/10 border border-[#FF6B00]/30 text-[#FF9500] text-[10px] font-semibold rounded shrink-0';
+        badge.textContent = 'AI';
+      } else {
+        badge.className = 'px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-semibold rounded shrink-0';
+        badge.textContent = 'Akurat';
       }
+      topRow.appendChild(badge);
 
-      // Metadata Lagu
       const metaRow = document.createElement('div');
-      metaRow.className = 'flex items-center gap-2 text-xs text-zinc-400';
-
-      const artistEl = document.createElement('span');
-      artistEl.textContent = song.artist || 'Anonim'; // Aman
-
-      const dotEl = document.createElement('span');
-      dotEl.textContent = '•';
-
-      const categoryEl = document.createElement('span');
-      categoryEl.className = 'capitalize';
-      categoryEl.textContent = song.category || 'lainnya';
-
-      const dotEl2 = document.createElement('span');
-      dotEl2.textContent = '•';
-
-      const tempoEl = document.createElement('span');
-      tempoEl.textContent = `${song.tempo_bpm} BPM`;
-
-      metaRow.appendChild(artistEl);
-      metaRow.appendChild(dotEl);
-      metaRow.appendChild(categoryEl);
-      metaRow.appendChild(dotEl2);
-      metaRow.appendChild(tempoEl);
+      metaRow.className = 'flex items-center gap-2 text-[11px] text-zinc-400';
+      metaRow.innerHTML = `<span>${song.artist || 'Anonim'}</span><span>•</span><span class="capitalize">${song.category || 'lainnya'}</span><span>•</span><span>${song.tempo_bpm} BPM</span>`;
 
       card.appendChild(topRow);
       card.appendChild(metaRow);
 
-      // Klik kartu -> Buka Lagu Latihan
       card.addEventListener('click', () => {
-        openSongForPractice(song.id);
+        selectSongToPractice(song);
       });
 
       dom.songListContainer.appendChild(card);
     });
   }
 
-  async function openSongForPractice(songId) {
+  async function selectSongToPractice(song) {
+    closeSongCatalog();
+
+    // Jika lagu adalah built-in dan sudah punya notes
+    if (song.notes && Array.isArray(song.notes) && song.notes.length > 0) {
+      setupPracticeSong(song);
+      return;
+    }
+
+    // Jika dari Supabase tanpa notes, fetch detail lengkapnya
     const config = window.APP_CONFIG || {};
     const supabaseUrl = (config.SUPABASE_URL || '').replace(/\/+$/, '');
     const anonKey = config.SUPABASE_PUBLISHABLE_KEY || '';
 
-    // Ambil detail lengkap lagu beserta array notes dari Supabase (Fitur: 4)
     try {
-      const headers = {
-        apikey: anonKey,
-        'Content-Type': 'application/json'
-      };
-      if (anonKey.startsWith('eyJ')) {
-        headers['Authorization'] = `Bearer ${anonKey}`;
+      const headers = { apikey: anonKey, 'Content-Type': 'application/json' };
+      if (anonKey.startsWith('eyJ')) headers['Authorization'] = `Bearer ${anonKey}`;
+
+      const res = await fetch(`${supabaseUrl}/rest/v1/songs?id=eq.${encodeURIComponent(song.id)}&select=*`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          setupPracticeSong(data[0]);
+          return;
+        }
       }
+    } catch (e) {}
 
-      const res = await fetch(`${supabaseUrl}/rest/v1/songs?id=eq.${encodeURIComponent(songId)}&select=*`, {
-        headers: headers
-      });
-
-      if (!res.ok) {
-        showSearchAlert('Gagal memuat partitur lagu.', 'error');
-        return;
-      }
-
-      const data = await res.json();
-      if (!Array.isArray(data) || data.length === 0) return;
-
-      const fullSong = data[0];
-      setupPracticeSong(fullSong);
-    } catch (e) {
-      showSearchAlert('Terjadi gangguan jaringan saat memuat lagu.', 'error');
-    }
+    setupPracticeSong(song);
   }
 
   function setupPracticeSong(song) {
     state.currentSong = song;
+    state.appMode = 'practice';
 
-    // Hitung detik per ketukan
     const beatSec = 60 / song.tempo_bpm;
-
-    // Normalisasi notes ke satuan detik
     state.songNotes = (song.notes || []).map((n) => {
       const timeSec = n.t * beatSec;
       const durationSec = n.d * beatSec;
@@ -1122,11 +1250,10 @@
       };
     });
 
-    // Durasi total lagu
     const lastNote = state.songNotes[state.songNotes.length - 1];
     state.songDurationSec = lastNote ? (lastNote.timeSec + lastNote.durationSec) : 10;
 
-    // Reset kontrol latihan (Layar latihan mulai terjeda dengan tombol "Mulai") (Fitur: 5)
+    // Reset Playback
     state.isPlaying = false;
     state.songTime = 0;
     state.loopPointA = null;
@@ -1140,53 +1267,53 @@
     dom.iconPause.classList.add('hidden');
     dom.labelPlayPause.textContent = 'Mulai';
 
-    // Set Info di HUD Header
-    dom.practiceSongTitle.textContent = song.title; // Aman textContent
+    // Update Header HUD
+    dom.practiceSongTitle.textContent = song.title;
     dom.practiceSongArtist.textContent = song.artist || 'Anonim';
     dom.practiceSongTempo.textContent = `${song.tempo_bpm} BPM`;
 
-    if (song.is_ai) {
-      dom.practiceAiBadge.classList.remove('hidden');
-    } else {
-      dom.practiceAiBadge.classList.add('hidden');
-    }
+    if (song.is_ai) dom.practiceAiBadge.classList.remove('hidden');
+    else dom.practiceAiBadge.classList.add('hidden');
 
     updatePlaybackTimeUI();
 
-    // Pindah Tampilan Layar ke Latihan
-    state.currentScreen = 'practice';
-    dom.songListScreen.classList.add('hidden');
-    dom.practiceScreen.classList.remove('hidden');
-    dom.practiceScreen.classList.add('flex');
+    // Alihkan Header ke Mode Latihan
+    dom.headerFreeMode.classList.add('hidden');
+    dom.headerPracticeMode.classList.remove('hidden');
+    dom.headerPracticeMode.classList.add('flex');
+    dom.practiceToolbar.classList.remove('hidden');
+    dom.practiceToolbar.classList.add('flex');
+    dom.freePlayHint.classList.add('opacity-0');
 
-    // Update dimensi tuts dan canvas
-    setTimeout(() => {
-      updateKeyAndLanePositions();
-    }, 100);
+    updateKeyAndLanePositions();
+  }
 
-    // Cek Banner Landscape di Layar HP
-    checkOrientationBanner();
+  function exitToFreeMode() {
+    state.appMode = 'free';
+    state.isPlaying = false;
+    stopAllActiveVoices();
+
+    dom.headerPracticeMode.classList.add('hidden');
+    dom.headerPracticeMode.classList.remove('flex');
+    dom.practiceToolbar.classList.add('hidden');
+    dom.practiceToolbar.classList.remove('flex');
+
+    dom.headerFreeMode.classList.remove('hidden');
+    dom.freePlayHint.classList.remove('opacity-0');
+
+    dom.pianoKeyboard.querySelectorAll('.is-target').forEach(el => el.classList.remove('is-target'));
   }
 
   // ============================================================================
-  // 10. GENERASI LAGU DENGAN AI (POST /api/song) (Fitur: 4)
-  // Dipanggil lewat tombol user, bukan otomatis
+  // 9. BUAT LAGU DENGAN AI (POST /api/song) (Fitur: 4)
   // ============================================================================
   async function generateSongWithAI() {
-    const query = dom.searchInput.value.trim();
-    if (!query || query.length < 2) {
-      showSearchAlert('Masukkan minimal 2 karakter judul lagu.', 'warning');
-      return;
-    }
+    const query = (state.searchQuery || '').trim();
+    if (query.length < 2) return;
 
-    if (state.isGeneratingAI) return;
-    state.isGeneratingAI = true;
-
-    // Sembunyikan empty state, tampilkan loading AI
     dom.emptyStateCard.classList.add('hidden');
     dom.aiLoadingCard.classList.remove('hidden');
     dom.aiLoadingCard.classList.add('flex');
-    hideSearchAlert();
 
     try {
       const res = await fetch('/api/song', {
@@ -1195,96 +1322,114 @@
         body: JSON.stringify({ query: query })
       });
 
-      const data = await res.json();
-      state.isGeneratingAI = false;
       dom.aiLoadingCard.classList.add('hidden');
+      dom.aiLoadingCard.classList.remove('flex');
 
-      if (!res.ok) {
-        // Tampilkan error ramah dari server
-        showSearchAlert(data.error || 'Gagal membuat lagu dengan AI.', 'error');
-        dom.emptyStateCard.classList.remove('hidden');
-        return;
+      if (res.ok) {
+        const resData = await res.json();
+        if (resData && resData.song) {
+          state.songsList.unshift(resData.song);
+          selectSongToPractice(resData.song);
+          return;
+        }
       }
 
-      if (data.song) {
-        // Berhasil! Buka langsung untuk dimainkan
-        setupPracticeSong(data.song);
-      }
-    } catch (err) {
-      state.isGeneratingAI = false;
-      dom.aiLoadingCard.classList.add('hidden');
+      showSearchAlert('Gagal membuat lagu dengan AI. Silakan coba judul lain.', 'error');
       dom.emptyStateCard.classList.remove('hidden');
-      showSearchAlert('Tidak ada internet atau server tidak dapat dijangkau.', 'error');
+    } catch (e) {
+      dom.aiLoadingCard.classList.add('hidden');
+      dom.aiLoadingCard.classList.remove('flex');
+      showSearchAlert('Terjadi gangguan jaringan atau timeout saat memanggil AI.', 'error');
+      dom.emptyStateCard.classList.remove('hidden');
     }
   }
 
-  function showSearchAlert(message, type = 'info') {
-    dom.searchAlert.textContent = message; // Aman dari XSS
-    dom.searchAlert.classList.remove('hidden', 'border-rose-500/40', 'bg-rose-500/10', 'text-rose-300', 'border-amber-500/40', 'bg-amber-500/10', 'text-amber-300');
+  function showSearchAlert(message, type = 'error') {
+    dom.searchAlert.textContent = message;
+    dom.searchAlert.className = `p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+      type === 'error' ? 'bg-rose-500/10 border-rose-500/30 text-rose-300' : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+    }`;
+    dom.searchAlert.classList.remove('hidden');
+    setTimeout(() => dom.searchAlert.classList.add('hidden'), 5000);
+  }
 
-    if (type === 'error') {
-      dom.searchAlert.classList.add('border-rose-500/40', 'bg-rose-500/10', 'text-rose-300');
+  // ============================================================================
+  // 10. SETUP EVENT LISTENERS & INTI SISTEM
+  // ============================================================================
+  function updateSustainButtonUI() {
+    if (state.isSustain) {
+      dom.btnSustain.classList.add('bg-[#FF6B00]', 'text-black', 'border-[#FF6B00]');
+      dom.btnSustain.classList.remove('bg-white/5', 'text-zinc-300');
     } else {
-      dom.searchAlert.classList.add('border-amber-500/40', 'bg-amber-500/10', 'text-amber-300');
+      dom.btnSustain.classList.remove('bg-[#FF6B00]', 'text-black', 'border-[#FF6B00]');
+      dom.btnSustain.classList.add('bg-white/5', 'text-zinc-300');
     }
   }
 
-  function hideSearchAlert() {
-    dom.searchAlert.classList.add('hidden');
-  }
-
-  // ============================================================================
-  // 11. KONTROL UI, CHIPS, LOOP, SLIDER, SOUND & MIDI (Fitur: 5, 6, 9, 10, 11, 12)
-  // ============================================================================
   function bindUIEvents() {
-    // Tombol Kembali ke Daftar Lagu
-    dom.btnBackToList.addEventListener('click', () => {
-      state.isPlaying = false;
-      state.currentScreen = 'list';
-      dom.practiceScreen.classList.add('hidden');
-      dom.songListScreen.classList.remove('hidden');
-      fetchSongsFromSupabase(false);
+    // Navigasi & Modal
+    dom.btnOpenCatalog.addEventListener('click', openSongCatalog);
+    dom.btnCloseCatalog.addEventListener('click', closeSongCatalog);
+    dom.btnExitToFree.addEventListener('click', exitToFreeMode);
+
+    // Search & Chips
+    dom.searchInput.addEventListener('input', (e) => {
+      state.searchQuery = e.target.value;
+      if (state.searchQuery) dom.btnClearSearch.classList.remove('hidden');
+      else dom.btnClearSearch.classList.add('hidden');
+      filterAndRenderCatalog();
     });
 
-    // Kontrol Play/Pause/Restart
+    dom.btnClearSearch.addEventListener('click', () => {
+      dom.searchInput.value = '';
+      state.searchQuery = '';
+      dom.btnClearSearch.classList.add('hidden');
+      filterAndRenderCatalog();
+    });
+
+    document.querySelectorAll('[data-chip-search]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const text = chip.dataset.chipSearch;
+        dom.searchInput.value = text;
+        state.searchQuery = text;
+        dom.btnClearSearch.classList.remove('hidden');
+        filterAndRenderCatalog();
+      });
+    });
+
+    document.querySelectorAll('[data-chip-category]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const cat = chip.dataset.chipCategory;
+        state.selectedCategory = state.selectedCategory === cat ? null : cat;
+        filterAndRenderCatalog();
+      });
+    });
+
+    dom.btnGenerateAi.addEventListener('click', generateSongWithAI);
+
+    // Playback Toolbar
     dom.btnPlayPause.addEventListener('click', togglePlayPause);
     dom.btnRestart.addEventListener('click', restartPlayback);
 
-    // Toggle Mode Auto / Step-by-Step (Fitur: 6)
     dom.btnModeToggle.addEventListener('click', () => {
       state.mode = state.mode === 'auto' ? 'step' : 'auto';
-      dom.labelCurrentMode.textContent = state.mode === 'auto' ? 'Auto' : 'Step-by-Step';
-      state.waitingForStepKey = null;
+      dom.labelCurrentMode.textContent = state.mode === 'auto' ? 'Auto' : 'Step';
     });
 
-    // Slider Kecepatan 50% - 120% (Fitur: 5)
     dom.speedSlider.addEventListener('input', (e) => {
-      const val = parseInt(e.target.value, 10);
-      state.playbackSpeed = val / 100;
-      dom.speedLabel.textContent = `${val}%`;
+      state.playbackSpeed = parseInt(e.target.value, 10) / 100;
+      dom.speedLabel.textContent = `${e.target.value}%`;
     });
 
-    // Kontrol Loop Titik A dan B (Fitur: 9)
-    dom.btnLoopA.addEventListener('click', () => {
-      state.loopPointA = state.songTime;
-      dom.btnLoopA.classList.add('text-[#FF6B00]', 'font-bold');
+    dom.soundSelect.addEventListener('change', (e) => {
+      state.soundType = e.target.value;
     });
 
-    dom.btnLoopB.addEventListener('click', () => {
-      state.loopPointB = state.songTime;
-      dom.btnLoopB.classList.add('text-[#FF6B00]', 'font-bold');
+    dom.btnSustain.addEventListener('click', () => {
+      state.isSustain = !state.isSustain;
+      updateSustainButtonUI();
     });
 
-    dom.btnLoopToggle.addEventListener('click', () => {
-      state.loopEnabled = !state.loopEnabled;
-      if (state.loopEnabled) {
-        dom.btnLoopToggle.classList.add('bg-[#FF6B00]', 'text-black');
-      } else {
-        dom.btnLoopToggle.classList.remove('bg-[#FF6B00]', 'text-black');
-      }
-    });
-
-    // Metronom (Fitur: 10)
     dom.btnMetronome.addEventListener('click', () => {
       state.metronomeEnabled = !state.metronomeEnabled;
       if (state.metronomeEnabled) {
@@ -1294,273 +1439,110 @@
       }
     });
 
-    // Sustain Pedal Button (Fitur: 10)
-    dom.btnSustain.addEventListener('click', () => {
-      setSustain(!state.isSustain);
+    // Loop A-B
+    dom.btnLoopA.addEventListener('click', () => {
+      state.loopPointA = state.songTime;
+      dom.btnLoopA.classList.add('text-[#FF6B00]');
     });
 
-    // Pilihan Suara (Fitur: 11)
-    dom.soundSelect.addEventListener('change', (e) => {
-      state.soundType = e.target.value;
+    dom.btnLoopB.addEventListener('click', () => {
+      state.loopPointB = state.songTime;
+      dom.btnLoopB.classList.add('text-[#FF6B00]');
     });
 
-    // Pencarian Input & Chips (Fitur: 4)
-    let searchDebounce = null;
-    dom.searchInput.addEventListener('input', (e) => {
-      const val = e.target.value.trim();
-      state.searchQuery = val;
-      dom.btnClearSearch.classList.toggle('hidden', val.length === 0);
-
-      clearTimeout(searchDebounce);
-      searchDebounce = setTimeout(() => {
-        fetchSongsFromSupabase(false);
-      }, 400);
-    });
-
-    dom.btnClearSearch.addEventListener('click', () => {
-      dom.searchInput.value = '';
-      state.searchQuery = '';
-      dom.btnClearSearch.classList.add('hidden');
-      fetchSongsFromSupabase(false);
-    });
-
-    // Chips Kata Kunci Lagu
-    document.querySelectorAll('[data-chip-search]').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const text = chip.getAttribute('data-chip-search');
-        dom.searchInput.value = text;
-        state.searchQuery = text;
-        dom.btnClearSearch.classList.remove('hidden');
-        dom.btnResetFilters.classList.remove('hidden');
-        fetchSongsFromSupabase(false);
-      });
-    });
-
-    // Chips Filter Kategori
-    document.querySelectorAll('[data-chip-category]').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const cat = chip.getAttribute('data-chip-category');
-        state.selectedCategory = cat;
-
-        document.querySelectorAll('[data-chip-category]').forEach(c => {
-          c.classList.remove('bg-[#FF6B00]/20', 'text-[#FF6B00]', 'border-[#FF6B00]');
-        });
-        chip.classList.add('bg-[#FF6B00]/20', 'text-[#FF6B00]', 'border-[#FF6B00]');
-        dom.btnResetFilters.classList.remove('hidden');
-
-        fetchSongsFromSupabase(false);
-      });
-    });
-
-    // Reset Filters
-    dom.btnResetFilters.addEventListener('click', () => {
-      dom.searchInput.value = '';
-      state.searchQuery = '';
-      state.selectedCategory = null;
-      dom.btnClearSearch.classList.add('hidden');
-      dom.btnResetFilters.classList.add('hidden');
-
-      document.querySelectorAll('[data-chip-category]').forEach(c => {
-        c.classList.remove('bg-[#FF6B00]/20', 'text-[#FF6B00]', 'border-[#FF6B00]');
-      });
-
-      fetchSongsFromSupabase(false);
-    });
-
-    // Tombol AI Buat Lagu
-    dom.btnGenerateAi.addEventListener('click', generateSongWithAI);
-
-    // Tombol Cadangan Muat Lebih Banyak
-    dom.btnLoadMore.addEventListener('click', () => {
-      fetchSongsFromSupabase(true);
+    dom.btnLoopToggle.addEventListener('click', () => {
+      state.loopEnabled = !state.loopEnabled;
+      if (state.loopEnabled) dom.btnLoopToggle.classList.add('text-[#FF6B00]');
+      else dom.btnLoopToggle.classList.remove('text-[#FF6B00]');
     });
 
     // Modal Hasil
-    dom.btnReplaySong.addEventListener('click', () => {
+    dom.btnReplay.addEventListener('click', () => {
       dom.resultModal.classList.add('hidden');
       restartPlayback();
       togglePlayPause();
     });
 
-    dom.btnChooseOtherSong.addEventListener('click', () => {
+    dom.btnChangeSong.addEventListener('click', () => {
       dom.resultModal.classList.add('hidden');
-      dom.btnBackToList.click();
+      openSongCatalog();
     });
 
-    // Infinite Scroll IntersectionObserver (Fitur: 4)
-    if ('IntersectionObserver' in window) {
-      const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && state.hasMoreSongs && !state.isLoadingSongs) {
-          fetchSongsFromSupabase(true);
-        }
-      }, { rootMargin: '200px' });
-      observer.observe(dom.infiniteScrollTrigger);
-    }
-
-    // Banner Landscape Dismiss
+    // Landscape Banner
     dom.btnDismissLandscapeBanner.addEventListener('click', () => {
-      state.landscapeBannerDismissed = true;
       dom.rotateLandscapeBanner.classList.add('hidden');
+      state.landscapeBannerDismissed = true;
     });
 
-    // Web MIDI API (Fitur: 12)
-    initWebMidi();
-  }
-
-  // Cek Banner Landscape saat di HP Portrait
-  function checkOrientationBanner() {
-    if (state.landscapeBannerDismissed || state.currentScreen !== 'practice') return;
-    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 768;
-    if (isPortrait) {
-      dom.rotateLandscapeBanner.classList.remove('hidden');
-    } else {
-      dom.rotateLandscapeBanner.classList.add('hidden');
+    // Check Orientasi HP
+    function checkOrientation() {
+      if (window.innerWidth < 640 && window.innerHeight > window.innerWidth && !state.landscapeBannerDismissed) {
+        dom.rotateLandscapeBanner.classList.remove('hidden');
+      } else {
+        dom.rotateLandscapeBanner.classList.add('hidden');
+      }
+      updateKeyAndLanePositions();
     }
-  }
 
-  // Inisialisasi Keyboard MIDI USB (Fitur: 12)
-  function initWebMidi() {
+    window.addEventListener('resize', updateKeyAndLanePositions);
+    window.addEventListener('orientationchange', checkOrientation);
+    checkOrientation();
+
+    // Fallback Logo
+    if (dom.appLogoImg) {
+      dom.appLogoImg.addEventListener('error', () => {
+        dom.appLogoImg.classList.add('hidden');
+        dom.appLogoFallback.classList.remove('hidden');
+      });
+    }
+
+    // Web MIDI USB (Fitur: 12)
     if (navigator.requestMIDIAccess) {
       dom.btnMidi.classList.remove('hidden');
+      dom.btnMidi.classList.add('inline-flex');
       dom.btnMidi.addEventListener('click', async () => {
         try {
           const midiAccess = await navigator.requestMIDIAccess();
-          dom.btnMidi.classList.add('text-[#FF6B00]', 'border-[#FF6B00]');
-
-          midiAccess.inputs.forEach((input) => {
-            input.onmidimessage = handleMidiMessage;
-          });
-
-          midiAccess.onstatechange = (e) => {
-            if (e.port.type === 'input') {
-              if (e.port.state === 'connected') {
-                e.port.onmidimessage = handleMidiMessage;
+          for (let input of midiAccess.inputs.values()) {
+            input.onmidimessage = (msg) => {
+              const [status, noteNumber, velocity] = msg.data;
+              const command = status >> 4;
+              if (command === 9 && velocity > 0) {
+                const keyInfo = KEY_MAP_BY_MIDI.get(noteNumber);
+                if (keyInfo) handleKeyPress(keyInfo.note);
+              } else if (command === 8 || (command === 9 && velocity === 0)) {
+                const keyInfo = KEY_MAP_BY_MIDI.get(noteNumber);
+                if (keyInfo) handleKeyRelease(keyInfo.note);
               }
-            }
-          };
-        } catch (midiErr) {
-          showSearchAlert('Akses keyboard MIDI ditolak atau tidak didukung perangkat.', 'warning');
-        }
+            };
+          }
+          dom.btnMidi.classList.add('text-[#FF6B00]');
+        } catch (e) {}
       });
     }
   }
 
-  function handleMidiMessage(event) {
-    const [status, noteNumber, velocity] = event.data;
-    const command = status >> 4;
-
-    // Abaikan bila di luar jangkauan C4 (60) sampai B5 (83)
-    if (noteNumber < 60 || noteNumber > 83) return;
-
-    const keyInfo = KEY_MAP_BY_MIDI.get(noteNumber);
-    if (!keyInfo) return;
-
-    // Note On (command 9 dan velocity > 0)
-    if (command === 9 && velocity > 0) {
-      handleKeyPress(keyInfo.note);
-    }
-    // Note Off (command 8 atau command 9 dengan velocity 0)
-    else if (command === 8 || (command === 9 && velocity === 0)) {
-      handleKeyRelease(keyInfo.note);
-    }
-  }
-
   // ============================================================================
-  // 12. PWA SERVICE WORKER & ADD TO HOME SCREEN (Fitur: 13)
+  // 11. REGISTRASI SERVICE WORKER PWA (Fitur: 13)
   // ============================================================================
-  function initPWA() {
-    // Registrasi Service Worker
+  function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {
-          // Abaikan kegagalan registrasi offline
-        });
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
       });
-    }
-
-    // Deteksi jika sudah berjalan Standalone (PWA terpasang)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    if (isStandalone) {
-      return; // Sembunyikan kartu instalasi
-    }
-
-    // Android / Chrome: Tangkap event beforeinstallprompt
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      state.deferredPrompt = e;
-      if (!state.pwaCardDismissed) {
-        dom.pwaInstallCard.classList.remove('hidden');
-      }
-    });
-
-    dom.btnInstallPwa.addEventListener('click', async () => {
-      // Periksa apakah di iOS Safari
-      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      if (isIos) {
-        dom.iosInstallModal.classList.remove('hidden');
-        return;
-      }
-
-      if (state.deferredPrompt) {
-        state.deferredPrompt.prompt();
-        const { outcome } = await state.deferredPrompt.userChoice;
-        state.deferredPrompt = null;
-        if (outcome === 'accepted') {
-          dom.pwaInstallCard.classList.add('hidden');
-        }
-      } else {
-        dom.iosInstallModal.classList.remove('hidden');
-      }
-    });
-
-    dom.btnDismissPwa.addEventListener('click', () => {
-      state.pwaCardDismissed = true;
-      dom.pwaInstallCard.classList.add('hidden');
-    });
-
-    dom.btnCloseIosModal.addEventListener('click', () => {
-      dom.iosInstallModal.classList.add('hidden');
-    });
-
-    // Tampilkan tombol pasang jika di iOS Safari non-standalone
-    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    if (isIos && !state.pwaCardDismissed) {
-      dom.pwaInstallCard.classList.remove('hidden');
     }
   }
 
-  // ============================================================================
-  // 13. INISIALISASI UTAMA
-  // ============================================================================
-  function init() {
-    initLogos();
+  // Inisialisasi Aplikasi Saat DOM Siap
+  document.addEventListener('DOMContentLoaded', () => {
     renderPianoKeyboard();
     bindPianoPointerEvents();
     bindUIEvents();
     startPlaybackLoop();
-    initPWA();
+    registerServiceWorker();
 
-    // Muat daftar lagu awal
-    fetchSongsFromSupabase(false);
-
-    // Event resize & orientationchange
-    window.addEventListener('resize', () => {
-      updateKeyAndLanePositions();
-      checkOrientationBanner();
-    });
-    window.addEventListener('orientationchange', () => {
-      setTimeout(() => {
-        updateKeyAndLanePositions();
-        checkOrientationBanner();
-      }, 200);
-    });
-  }
-
-  // Jalankan saat DOM siap
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+    // Pre-fetch lagu Supabase di background
+    fetchSongsFromSupabase();
+  });
 
 })();

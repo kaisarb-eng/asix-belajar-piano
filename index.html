@@ -1,6 +1,6 @@
 <!--
   File: index.html
-  Fungsi: Antarmuka utama aplikasi Asix Belajar Piano (Layar Daftar Lagu, Layar Latihan Piano, Modal Hasil & Petunjuk PWA)
+  Fungsi: Antarmuka aplikasi Asix Belajar Piano — Halaman Utama Piano Bebas (Free Play) & Mode Belajar Not Melayang (Synthesia)
   Fitur: 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 -->
 <!DOCTYPE html>
@@ -10,7 +10,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Asix Belajar Piano</title>
   
-  <!-- Meta PWA Wajib -->
+  <!-- Meta PWA Wajib (Fitur: 13) -->
   <link rel="manifest" href="./manifest.webmanifest">
   <meta name="theme-color" content="#0B0B0E">
   <meta name="mobile-web-app-capable" content="yes">
@@ -54,78 +54,243 @@
   <!-- Style Utama -->
   <link rel="stylesheet" href="./style.css">
 </head>
-<body class="h-full w-full overflow-hidden bg-[#07070A] text-[#E4E1E7] font-sans antialiased">
+<body class="h-full w-full overflow-hidden bg-[#07070A] text-[#E4E1E7] font-sans antialiased flex flex-col justify-between">
 
   <!-- ========================================================================= -->
-  <!-- 1. LAYAR DAFTAR LAGU (Fitur: 4, 13) -->
+  <!-- BANNER PUTAR LANDSCAPE (Fitur: 1) -->
   <!-- ========================================================================= -->
-  <div id="song-list-screen" class="h-full w-full flex flex-col overflow-y-auto safe-padding-all">
-    <!-- Header Utama -->
-    <header class="sticky top-0 z-20 bg-[#0B0B0E]/90 backdrop-blur-md border-b border-[#2A2A33] px-4 py-3 sm:px-6">
-      <div class="max-w-5xl mx-auto flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF6B00] to-[#FF9500] p-0.5 flex items-center justify-center shadow-lg shadow-[#FF6B00]/20">
-            <div class="w-full h-full bg-[#0B0B0E] rounded-[10px] flex items-center justify-center overflow-hidden">
-              <svg class="w-6 h-6 text-[#FF6B00]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 18V5l12-2v13"></path>
-                <circle cx="6" cy="18" r="3"></circle>
-                <circle cx="18" cy="16" r="3"></circle>
-              </svg>
-            </div>
-          </div>
-          <div>
-            <h1 class="text-xl font-bold font-display text-white tracking-tight flex items-center gap-2">
-              Asix Belajar Piano
-            </h1>
-            <p class="text-xs text-zinc-400">Belajar melodi dengan not melayang ala Synthesia</p>
-          </div>
+  <aside id="rotate-landscape-banner" class="hidden z-50 bg-[#FF6B00] text-black px-3 py-2 text-xs font-semibold flex items-center justify-between shadow-lg shrink-0">
+    <div class="flex items-center gap-2">
+      <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+      </svg>
+      <span>Putar HP ke posisi landscape untuk tuts piano yang lebih lebar & nyaman.</span>
+    </div>
+    <button id="btn-dismiss-landscape-banner" class="p-1 hover:bg-black/10 rounded transition" title="Tutup">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- 1. TOP HEADER APP (Mode Bebas & Mode Belajar) -->
+  <!-- ========================================================================= -->
+  <header class="z-30 shrink-0 bg-[#0E0F16]/95 border-b border-[#2A2A38] px-3 py-2.5 backdrop-blur-md safe-padding-top safe-padding-x flex flex-wrap items-center justify-between gap-2 shadow-md">
+    
+    <!-- Kiri: Logo + Mode Switcher -->
+    <div class="flex items-center gap-3">
+      <!-- Logo Container -->
+      <div class="flex items-center gap-2" id="header-logo-container">
+        <img id="app-logo-img" src="./asix_studio_circle_web_320_v2.webp" alt="Asix Studio" class="w-8 h-8 rounded-full object-contain border border-[#2A2A38]">
+        <div id="app-logo-fallback" class="hidden w-8 h-8 rounded-full bg-[#FF6B00] text-black font-bold font-display text-[10px] flex items-center justify-center">
+          Asix
         </div>
+      </div>
 
-        <!-- Logo Container dengan Fallback -->
-        <div class="flex items-center gap-2" id="header-logo-container">
-          <img id="app-logo-img" src="./asix_studio_circle_web_320_v2.webp" alt="Asix Studio" class="w-9 h-9 rounded-full object-contain border border-[#2A2A33]">
-          <div id="app-logo-fallback" class="hidden w-9 h-9 rounded-full bg-[#FF6B00] text-black font-bold font-display text-xs flex items-center justify-center shadow-md">
-            Asix
+      <!-- State: Tampilan Header Saat Mode Bebas -->
+      <div id="header-free-mode" class="flex items-center gap-2.5">
+        <div>
+          <h1 class="text-sm sm:text-base font-bold font-display text-white tracking-tight flex items-center gap-1.5">
+            <span>Asix Piano</span>
+            <span class="text-[10px] font-sans font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Mode Bebas</span>
+          </h1>
+          <p class="text-[11px] text-zinc-400 hidden sm:block">Mainkan piano bebas atau pilih lagu untuk latihan not melayang</p>
+        </div>
+      </div>
+
+      <!-- State: Tampilan Header Saat Mode Latihan Lagu (Synthesia) -->
+      <div id="header-practice-mode" class="hidden items-center gap-2.5">
+        <button id="btn-exit-to-free" class="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-[#2A2A38] transition flex items-center gap-1.5 group" title="Kembali ke Piano Bebas">
+          <svg class="w-4 h-4 text-[#FF6B00] transform group-hover:-translate-x-0.5 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M15 19l-7-7 7-7"></path>
+          </svg>
+          <span class="text-xs font-semibold">Mode Bebas</span>
+        </button>
+
+        <div class="h-5 w-px bg-[#2A2A38]"></div>
+
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 id="practice-song-title" class="text-xs sm:text-sm font-bold font-display text-white truncate max-w-[140px] sm:max-w-xs">
+              Ibu Kita Kartini
+            </h2>
+            <span id="practice-ai-badge" class="hidden px-1.5 py-0.2 bg-[#FF6B00]/15 border border-[#FF6B00]/40 text-[#FF9500] text-[9px] font-semibold rounded">
+              AI
+            </span>
+          </div>
+          <div class="flex items-center gap-2 text-[10px] sm:text-[11px] text-zinc-400">
+            <span id="practice-song-artist">W.R. Supratman</span>
+            <span>•</span>
+            <span id="practice-song-tempo">80 BPM</span>
           </div>
         </div>
       </div>
-    </header>
+    </div>
 
-    <!-- Konten Utama Layar Daftar Lagu -->
-    <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-5 sm:px-6 flex flex-col gap-5">
+    <!-- Kanan: Tombol Utama & Kontrol Cepat -->
+    <div class="flex items-center gap-2">
+      <!-- Tombol Buka Katalog Belajar Lagu (Mencolok!) -->
+      <button id="btn-open-catalog" class="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-[#FF6B00] to-[#FF9500] hover:brightness-110 active:scale-95 text-black font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-[#FF6B00]/25 transition flex items-center gap-1.5">
+        <svg class="w-4 h-4 text-black" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <span>Belajar Lagu</span>
+      </button>
 
-      <!-- Kartu Pasang di Layar Utama (PWA Install Card) (Fitur: 13) -->
-      <section id="pwa-install-card" class="hidden bg-gradient-to-r from-[#18181F] to-[#121216] border border-[#FF6B00]/30 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <div class="p-2.5 rounded-xl bg-[#FF6B00]/10 text-[#FF6B00] shrink-0">
-            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+      <!-- Pilihan Suara (Piano, E-Piano, Organ) (Fitur: 11) -->
+      <select id="sound-select" class="bg-[#121216] border border-[#2A2A38] text-zinc-300 rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#FF6B00]">
+        <option value="piano">🎹 Piano</option>
+        <option value="epiano">⚡ E-Piano</option>
+        <option value="organ">🏛️ Organ</option>
+      </select>
+
+      <!-- Pedal Sustain (Fitur: 10) -->
+      <button id="btn-sustain" class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-[#2A2A38] rounded-xl text-xs font-semibold text-zinc-300 transition hidden sm:inline-flex" title="Pedal Sustain (Spasi)">
+        Pedal
+      </button>
+
+      <!-- Metronom (Fitur: 10) -->
+      <button id="btn-metronome" class="p-2 bg-white/5 hover:bg-white/10 border border-[#2A2A38] rounded-xl text-zinc-400 hover:text-white transition hidden sm:inline-flex" title="Metronom">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L4 22h16L12 2z"></path>
+          <line x1="12" y1="9" x2="16" y2="5"></line>
+        </svg>
+      </button>
+
+      <!-- Tombol MIDI USB (Fitur: 12) -->
+      <button id="btn-midi" class="hidden px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-[#2A2A38] rounded-xl text-xs text-zinc-400 hover:text-[#FF6B00] transition items-center gap-1" title="Hubungkan Keyboard MIDI USB">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+          <circle cx="6" cy="12" r="1"></circle>
+          <circle cx="10" cy="12" r="1"></circle>
+          <circle cx="14" cy="12" r="1"></circle>
+          <circle cx="18" cy="12" r="1"></circle>
+        </svg>
+        <span class="hidden md:inline">MIDI</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- 2. TOOLBAR LATIHAN SYNTHESIA (Hanya aktif saat sedang belajar lagu) -->
+  <!-- ========================================================================= -->
+  <div id="practice-toolbar" class="hidden z-20 shrink-0 bg-[#0B0B0E]/95 border-b border-[#2A2A38] px-3 py-1.5 flex-wrap items-center justify-between gap-2 text-xs">
+    <!-- Kontrol Playback Utama -->
+    <div class="flex items-center gap-1.5">
+      <button id="btn-play-pause" class="px-3 py-1.5 bg-[#FF6B00] hover:bg-[#FF8800] text-black font-bold rounded-lg transition flex items-center gap-1.5 shadow-md shadow-[#FF6B00]/20">
+        <svg id="icon-play" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <svg id="icon-pause" class="w-3.5 h-3.5 hidden" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
+        </svg>
+        <span id="label-play-pause">Mulai</span>
+      </button>
+
+      <button id="btn-restart" class="p-1.5 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white rounded-lg border border-[#2A2A38] transition" title="Ulang dari Awal">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 4v6h6"></path>
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+        </svg>
+      </button>
+
+      <!-- Toggle Mode Auto / Step-by-Step (Fitur: 6) -->
+      <button id="btn-mode-toggle" class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-[#2A2A38] rounded-lg text-zinc-300 font-medium transition flex items-center gap-1">
+        <span class="text-zinc-500">Mode:</span>
+        <span id="label-current-mode" class="text-[#FF9500] font-bold">Auto</span>
+      </button>
+    </div>
+
+    <!-- Slider Kecepatan & Progres Waktu (Fitur: 5) -->
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-1.5">
+        <span class="text-zinc-500">Kec:</span>
+        <input id="speed-slider" type="range" min="50" max="120" value="100" step="5" class="w-16 sm:w-20 accent-[#FF6B00] cursor-pointer">
+        <span id="speed-label" class="font-mono text-[11px] text-zinc-300 w-8">100%</span>
+      </div>
+      <div class="font-mono text-[11px] text-zinc-400">
+        <span id="current-time-label">00:00</span> / <span id="total-time-label">00:00</span>
+      </div>
+    </div>
+
+    <!-- Loop Titik A-B (Fitur: 9) -->
+    <div class="flex items-center bg-white/5 rounded-lg border border-[#2A2A38] p-0.5">
+      <button id="btn-loop-a" class="px-1.5 py-1 text-[10px] text-zinc-400 hover:text-white rounded hover:bg-white/10" title="Set Titik A">A</button>
+      <button id="btn-loop-b" class="px-1.5 py-1 text-[10px] text-zinc-400 hover:text-white rounded hover:bg-white/10" title="Set Titik B">B</button>
+      <button id="btn-loop-toggle" class="px-1.5 py-1 text-[10px] font-semibold text-zinc-400 hover:text-[#FF6B00] rounded hover:bg-white/10" title="Toggle Loop">Loop</button>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 3. WATERFALL CANVAS (Falling Notes & Free Play Visualizer) (Fitur: 2, 8) -->
+  <!-- ========================================================================= -->
+  <div id="waterfall-container" class="flex-1 w-full relative bg-[#07070A] overflow-hidden min-h-[140px]">
+    <canvas id="waterfall-canvas" class="absolute inset-0 w-full h-full block"></canvas>
+    
+    <!-- Panduan Halus di Tengah Canvas Saat Mode Bebas -->
+    <div id="free-play-hint" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-4 transition-opacity duration-300">
+      <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 backdrop-blur-sm max-w-sm">
+        <p class="text-xs font-semibold text-zinc-300 flex items-center justify-center gap-1.5">
+          <span>🎹</span>
+          <span>Mainkan tuts piano langsung atau ketik keyboard komputer</span>
+        </p>
+        <p class="text-[11px] text-zinc-500 mt-1">
+          Baris bawah: <strong class="text-zinc-400">Z S X D C V G B H N J M</strong> (C4-B4)<br>
+          Baris atas: <strong class="text-zinc-400">Q 2 W 3 E R 5 T 6 Y 7 U</strong> (C5-B5)
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 4. PAPAN TUTS PIANO PROPORSIONAL (C4 - B5) (Fitur: 1, 8) -->
+  <!-- ========================================================================= -->
+  <div id="piano-wrapper" class="w-full shrink-0 safe-padding-bottom">
+    <div id="piano-keyboard" class="relative w-full h-44 sm:h-52 md:h-64 lg:h-72 touch-none select-none">
+      <!-- 14 Tuts Putih + 10 Tuts Hitam di-render dinamis oleh app.js -->
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 5. MODAL / DRAWER KATALOG LAGU (Fitur: 4, 13) -->
+  <!-- ========================================================================= -->
+  <div id="song-catalog-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all">
+    <div class="bg-[#121216] border border-[#2A2A38] rounded-t-3xl sm:rounded-3xl max-w-2xl w-full max-h-[85vh] sm:max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+      
+      <!-- Header Modal -->
+      <div class="p-4 sm:p-5 border-b border-[#2A2A38] flex items-center justify-between bg-[#16161D]">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-[#FF6B00]/15 text-[#FF6B00] flex items-center justify-center">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18V5l12-2v13"></path>
+              <circle cx="6" cy="18" r="3"></circle>
+              <circle cx="18" cy="16" r="3"></circle>
             </svg>
           </div>
           <div>
-            <h2 class="text-sm font-semibold text-white">Pasang di Layar Utama</h2>
-            <p class="text-xs text-zinc-400">Akses cepat layar penuh & mainkan piano tanpa browser frame.</p>
+            <h3 class="text-base font-bold font-display text-white">Koleksi Lagu Belajar</h3>
+            <p class="text-xs text-zinc-400">Pilih lagu untuk melihat not melayang ala Synthesia</p>
           </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <button id="btn-install-pwa" class="px-3.5 py-1.5 bg-[#FF6B00] hover:bg-[#FF8800] text-black font-semibold text-xs rounded-xl transition shadow-md shadow-[#FF6B00]/25">
-            Pasang
-          </button>
-          <button id="btn-dismiss-pwa" class="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition" title="Tutup">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-      </section>
 
-      <!-- Search Box & Chips (Fitur: 4) -->
-      <section class="flex flex-col gap-3">
+        <button id="btn-close-catalog" class="p-2 text-zinc-400 hover:text-white rounded-xl hover:bg-white/5 transition" title="Tutup Katalog">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Konten Modal: Search & Chips -->
+      <div class="p-4 sm:p-5 flex flex-col gap-3.5 overflow-y-auto">
+        <!-- Kotak Pencarian -->
         <div class="relative">
           <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
@@ -134,10 +299,10 @@
             id="search-input"
             type="text"
             maxlength="80"
-            placeholder="Cari lagu (contoh: Ibu Kita Kartini, Begadang, Indonesia Raya)..."
-            class="w-full pl-11 pr-10 py-3 bg-[#121216] border border-[#2A2A33] rounded-2xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#FF6B00] focus:ring-1 focus:ring-[#FF6B00] transition"
+            placeholder="Cari lagu (contoh: Gundul-Gundul Pacul, Balonku, Ibu Kita Kartini)..."
+            class="w-full pl-10 pr-9 py-2.5 bg-[#181820] border border-[#2A2A38] rounded-xl text-white placeholder-zinc-500 text-xs sm:text-sm focus:outline-none focus:border-[#FF6B00] transition"
           >
-          <button id="btn-clear-search" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-400 hover:text-white">
+          <button id="btn-clear-search" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-white">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -145,243 +310,80 @@
           </button>
         </div>
 
-        <!-- Chips Pencarian Cepat & Kategori -->
+        <!-- Filter Chips Populer -->
         <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs">
           <span class="text-zinc-500 font-medium shrink-0">Pilihan:</span>
-          <button data-chip-search="Ibu Kita Kartini" class="chip-item px-3 py-1.5 rounded-full bg-[#1A1A20] hover:bg-[#2A2A33] text-zinc-300 hover:text-white border border-[#2A2A33] shrink-0 transition">
+          <button data-chip-search="Ibu Kita Kartini" class="chip-item px-3 py-1.5 rounded-full bg-[#1C1C24] hover:bg-[#2A2A38] text-zinc-300 hover:text-white border border-[#2A2A38] shrink-0 transition">
             Ibu Kita Kartini
           </button>
-          <button data-chip-search="Gundul-Gundul Pacul" class="chip-item px-3 py-1.5 rounded-full bg-[#1A1A20] hover:bg-[#2A2A33] text-zinc-300 hover:text-white border border-[#2A2A33] shrink-0 transition">
+          <button data-chip-search="Gundul-Gundul Pacul" class="chip-item px-3 py-1.5 rounded-full bg-[#1C1C24] hover:bg-[#2A2A38] text-zinc-300 hover:text-white border border-[#2A2A38] shrink-0 transition">
             Gundul-Gundul Pacul
           </button>
-          <button data-chip-category="islami" class="chip-category px-3 py-1.5 rounded-full bg-[#1A1A20] hover:bg-[#2A2A33] text-zinc-300 hover:text-white border border-[#2A2A33] shrink-0 transition">
-            Islami populer
+          <button data-chip-search="Balonku Ada Lima" class="chip-item px-3 py-1.5 rounded-full bg-[#1C1C24] hover:bg-[#2A2A38] text-zinc-300 hover:text-white border border-[#2A2A38] shrink-0 transition">
+            Balonku
           </button>
-          <button data-chip-category="dangdut" class="chip-category px-3 py-1.5 rounded-full bg-[#1A1A20] hover:bg-[#2A2A33] text-zinc-300 hover:text-white border border-[#2A2A33] shrink-0 transition">
-            Dangdut populer
+          <button data-chip-search="Twinkle Twinkle Little Star" class="chip-item px-3 py-1.5 rounded-full bg-[#1C1C24] hover:bg-[#2A2A38] text-zinc-300 hover:text-white border border-[#2A2A38] shrink-0 transition">
+            Twinkle Star
           </button>
-          <button id="btn-reset-filters" class="hidden px-2.5 py-1.5 rounded-full bg-[#FF6B00]/10 text-[#FF6B00] border border-[#FF6B00]/30 shrink-0 hover:bg-[#FF6B00]/20 transition flex items-center gap-1">
-            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
+          <button data-chip-category="islami" class="chip-category px-3 py-1.5 rounded-full bg-[#1C1C24] hover:bg-[#2A2A38] text-zinc-300 hover:text-white border border-[#2A2A38] shrink-0 transition">
+            Tombo Ati
+          </button>
+          <button data-chip-category="dangdut" class="chip-category px-3 py-1.5 rounded-full bg-[#1C1C24] hover:bg-[#2A2A38] text-zinc-300 hover:text-white border border-[#2A2A38] shrink-0 transition">
+            Kopi Dangdut
+          </button>
+        </div>
+
+        <!-- Alert Error / Warning -->
+        <div id="search-alert" class="hidden p-3 rounded-xl border text-xs flex items-start gap-2.5"></div>
+
+        <!-- Daftar Lagu Grid -->
+        <div id="song-list-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3 min-h-[160px]">
+          <!-- Kartu-kartu lagu di-render dinamis oleh app.js -->
+        </div>
+
+        <!-- State: Lagu Belum Ada (Tombol Buat AI) (Fitur: 4) -->
+        <div id="empty-state-card" class="hidden flex-col items-center justify-center p-6 bg-[#181820] border border-[#2A2A38] rounded-2xl text-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-[#FF6B00]/15 text-[#FF6B00] flex items-center justify-center">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
             </svg>
-            Reset
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-white font-display" id="empty-state-title">Lagu Belum Ada</h4>
+            <p class="text-xs text-zinc-400 mt-0.5" id="empty-state-desc">Ingin membuat melodi lagu ini menggunakan AI?</p>
+          </div>
+          <button id="btn-generate-ai" class="mt-1 px-4 py-2 bg-[#FF6B00] hover:bg-[#FF8800] text-black font-bold text-xs rounded-xl shadow-md shadow-[#FF6B00]/25 transition flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <span>Buat Lagu dengan AI</span>
           </button>
         </div>
-      </section>
 
-      <!-- Status Pesan / Banner Info -->
-      <section id="search-alert" class="hidden p-3.5 rounded-xl border text-xs flex items-start gap-2.5"></section>
-
-      <!-- Kontainer Daftar Lagu -->
-      <section id="song-list-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-        <!-- Kartu-kartu lagu akan di-render di sini oleh app.js -->
-      </section>
-
-      <!-- State: Hasil Pencarian Kosong & Tombol AI (Fitur: 4) -->
-      <section id="empty-state-card" class="hidden flex-col items-center justify-center p-8 bg-[#121216] border border-[#2A2A33] rounded-3xl text-center gap-3">
-        <div class="w-12 h-12 rounded-2xl bg-[#FF6B00]/10 text-[#FF6B00] flex items-center justify-center">
-          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
-          </svg>
-        </div>
-        <div>
-          <h2 class="text-base font-bold text-white font-display" id="empty-state-title">Lagu belum ada</h2>
-          <p class="text-xs text-zinc-400 max-w-sm mt-1" id="empty-state-desc">Lagu belum ada. Buat dengan AI?</p>
-        </div>
-        <button id="btn-generate-ai" class="mt-2 px-5 py-2.5 bg-[#FF6B00] hover:bg-[#FF8800] text-black font-bold text-xs rounded-xl shadow-lg shadow-[#FF6B00]/25 transition flex items-center gap-2">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-          </svg>
-          <span>Buat Lagu dengan AI</span>
-        </button>
-      </section>
-
-      <!-- State: Loading AI (Fitur: 4) -->
-      <section id="ai-loading-card" class="hidden flex-col items-center justify-center p-8 bg-[#121216] border border-[#FF6B00]/40 rounded-3xl text-center gap-3">
-        <div class="w-10 h-10 border-3 border-[#FF6B00]/20 border-t-[#FF6B00] rounded-full animate-spin"></div>
-        <div>
-          <h2 class="text-sm font-bold text-white">Sedang Membuat Melodi Lagu dengan AI...</h2>
-          <p class="text-xs text-[#FF9500] mt-1">Proses analisis melodi bisa membutuhkan waktu 10-30 detik.</p>
-        </div>
-      </section>
-
-      <!-- Infinite Scroll Trigger & Tombol Cadangan -->
-      <div id="infinite-scroll-trigger" class="h-4 w-full"></div>
-      <div class="flex justify-center pb-8">
-        <button id="btn-load-more" class="hidden px-5 py-2 rounded-xl bg-[#18181F] hover:bg-[#2A2A33] border border-[#2A2A33] text-xs font-semibold text-zinc-300 transition">
-          Muat Lebih Banyak
-        </button>
-      </div>
-    </main>
-  </div>
-
-  <!-- ========================================================================= -->
-  <!-- 2. LAYAR LATIHAN PIANO (Fitur: 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12) -->
-  <!-- ========================================================================= -->
-  <div id="practice-screen" class="hidden h-full w-full flex-col justify-between overflow-hidden relative select-none">
-
-    <!-- Banner Putar Landscape (Fitur: 1) -->
-    <aside id="rotate-landscape-banner" class="hidden z-50 bg-[#FF6B00] text-black px-3 py-2 text-xs font-semibold flex items-center justify-between shadow-lg">
-      <div class="flex items-center gap-2">
-        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="5" width="20" height="14" rx="2"></rect>
-          <line x1="12" y1="20" x2="12" y2="20.01"></line>
-        </svg>
-        <span>Putar HP ke landscape untuk pengalaman bermain tuts piano yang lebih luas & nyaman.</span>
-      </div>
-      <button id="btn-dismiss-landscape-banner" class="p-1 hover:bg-black/10 rounded transition" title="Tutup peringatan">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-    </aside>
-
-    <!-- Top HUD Header (Layar Latihan) -->
-    <header class="z-30 shrink-0 bg-[#0E0F16]/95 border-b border-[#2A2A33] px-3 py-2 backdrop-blur-md flex flex-wrap items-center justify-between gap-2 safe-padding-top safe-padding-x">
-      <!-- Kiri: Tombol Kembali & Info Lagu -->
-      <div class="flex items-center gap-2.5">
-        <button id="btn-back-to-list" class="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-[#2A2A33] transition flex items-center gap-1.5 group" title="Kembali ke Daftar Lagu">
-          <svg class="w-4 h-4 text-[#FF6B00] transform group-hover:-translate-x-0.5 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M15 19l-7-7 7-7"></path>
-          </svg>
-          <span class="text-xs font-semibold hidden md:inline">Daftar Lagu</span>
-        </button>
-
-        <div class="h-6 w-px bg-[#2A2A33] hidden sm:block"></div>
-
-        <div>
-          <div class="flex items-center gap-2">
-            <h2 id="practice-song-title" class="text-sm font-bold font-display text-white truncate max-w-[150px] sm:max-w-xs md:max-w-md">
-              Judul Lagu
-            </h2>
-            <span id="practice-ai-badge" class="hidden px-1.5 py-0.5 bg-[#FF6B00]/15 border border-[#FF6B00]/40 text-[#FF9500] text-[10px] font-semibold rounded" title="Dibuat AI, bisa kurang akurat">
-              AI
-            </span>
-          </div>
-          <div class="flex items-center gap-2 text-[11px] text-zinc-400">
-            <span id="practice-song-artist">Artis</span>
-            <span>•</span>
-            <span id="practice-song-tempo">100 BPM</span>
+        <!-- State: Sedang Membuat AI -->
+        <div id="ai-loading-card" class="hidden flex-col items-center justify-center p-6 bg-[#181820] border border-[#FF6B00]/40 rounded-2xl text-center gap-2.5">
+          <div class="w-8 h-8 border-2 border-[#FF6B00]/20 border-t-[#FF6B00] rounded-full animate-spin"></div>
+          <div>
+            <h4 class="text-xs font-bold text-white">Sedang Membuat Melodi Lagu dengan AI...</h4>
+            <p class="text-[11px] text-[#FF9500] mt-0.5">Analisis nada membutuhkan waktu beberapa detik.</p>
           </div>
         </div>
-      </div>
 
-      <!-- Kanan: Kontrol Cepat & Logo -->
-      <div class="flex items-center gap-2">
-        <!-- Logo di Pojok Kanan Atas (Fitur: 1) -->
-        <div class="flex items-center gap-2" id="practice-logo-container">
-          <img id="practice-logo-img" src="./asix_studio_circle_web_320_v2.webp" alt="Asix" class="w-7 h-7 rounded-full object-contain border border-[#2A2A33]">
-          <div id="practice-logo-fallback" class="hidden w-7 h-7 rounded-full bg-[#FF6B00] text-black font-bold font-display text-[10px] flex items-center justify-center">
-            Asix
-          </div>
+        <!-- Tombol Muat Lebih Banyak -->
+        <div class="flex justify-center pt-2">
+          <button id="btn-load-more" class="hidden px-4 py-1.5 rounded-xl bg-[#1C1C24] hover:bg-[#2A2A38] border border-[#2A2A38] text-xs font-semibold text-zinc-300 transition">
+            Muat Lebih Banyak
+          </button>
         </div>
-      </div>
-    </header>
-
-    <!-- Toolbar Kontrol Latihan (Fitur: 5, 6, 9, 10, 11, 12) -->
-    <div class="z-20 shrink-0 bg-[#0B0B0E]/90 border-b border-[#2A2A33] px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-      <!-- Grup Kontrol Playback Utama -->
-      <div class="flex items-center gap-1.5">
-        <button id="btn-play-pause" class="px-3 py-1.5 bg-[#FF6B00] hover:bg-[#FF8800] text-black font-bold rounded-lg transition flex items-center gap-1.5 shadow-md shadow-[#FF6B00]/20">
-          <svg id="icon-play" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-          </svg>
-          <svg id="icon-pause" class="w-3.5 h-3.5 hidden" viewBox="0 0 24 24" fill="currentColor">
-            <rect x="6" y="4" width="4" height="16"></rect>
-            <rect x="14" y="4" width="4" height="16"></rect>
-          </svg>
-          <span id="label-play-pause">Mulai</span>
-        </button>
-
-        <button id="btn-restart" class="p-1.5 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white rounded-lg border border-[#2A2A33] transition" title="Ulang dari Awal">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 4v6h6"></path>
-            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-          </svg>
-        </button>
-
-        <!-- Toggle Mode Auto / Step-by-Step (Fitur: 6) -->
-        <button id="btn-mode-toggle" class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-[#2A2A33] rounded-lg text-zinc-300 font-medium transition flex items-center gap-1">
-          <span class="text-zinc-500">Mode:</span>
-          <span id="label-current-mode" class="text-[#FF9500] font-bold">Auto</span>
-        </button>
-      </div>
-
-      <!-- Grup Slider Kecepatan & Progres (Fitur: 5) -->
-      <div class="flex items-center gap-3">
-        <div class="flex items-center gap-1.5">
-          <span class="text-zinc-500">Kec:</span>
-          <input id="speed-slider" type="range" min="50" max="120" value="100" step="5" class="w-16 sm:w-20 accent-[#FF6B00] cursor-pointer">
-          <span id="speed-label" class="font-mono text-[11px] text-zinc-300 w-8">100%</span>
-        </div>
-        <div class="font-mono text-[11px] text-zinc-400">
-          <span id="current-time-label">00:00</span> / <span id="total-time-label">00:00</span>
-        </div>
-      </div>
-
-      <!-- Grup Fitur Tambahan (Loop, Metronom, Sustain, Suara, MIDI) (Fitur: 9, 10, 11, 12) -->
-      <div class="flex items-center gap-1">
-        <!-- Loop Controls (Fitur: 9) -->
-        <div class="flex items-center bg-white/5 rounded-lg border border-[#2A2A33] p-0.5">
-          <button id="btn-loop-a" class="px-1.5 py-1 text-[10px] text-zinc-400 hover:text-white rounded hover:bg-white/10" title="Set Titik A">A</button>
-          <button id="btn-loop-b" class="px-1.5 py-1 text-[10px] text-zinc-400 hover:text-white rounded hover:bg-white/10" title="Set Titik B">B</button>
-          <button id="btn-loop-toggle" class="px-1.5 py-1 text-[10px] font-semibold text-zinc-400 hover:text-[#FF6B00] rounded hover:bg-white/10" title="Toggle Loop">Loop</button>
-        </div>
-
-        <!-- Metronom (Fitur: 10) -->
-        <button id="btn-metronome" class="p-1.5 bg-white/5 hover:bg-white/10 border border-[#2A2A33] rounded-lg text-zinc-400 hover:text-white transition" title="Metronom">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L4 22h16L12 2z"></path>
-            <line x1="12" y1="9" x2="16" y2="5"></line>
-          </svg>
-        </button>
-
-        <!-- Pedal Sustain (Fitur: 10) -->
-        <button id="btn-sustain" class="px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-[#2A2A33] rounded-lg text-[11px] font-semibold text-zinc-400 transition" title="Pedal Sustain (Spasi)">
-          Pedal
-        </button>
-
-        <!-- Pilihan Suara (Fitur: 11) -->
-        <select id="sound-select" class="bg-[#121216] border border-[#2A2A33] text-zinc-300 rounded-lg px-2 py-1 text-[11px] focus:outline-none focus:border-[#FF6B00]">
-          <option value="piano">Piano</option>
-          <option value="epiano">Electric Piano</option>
-          <option value="organ">Organ</option>
-        </select>
-
-        <!-- Tombol MIDI USB (Fitur: 12) -->
-        <button id="btn-midi" class="hidden px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-[#2A2A33] rounded-lg text-[11px] text-zinc-400 hover:text-[#FF6B00] transition flex items-center gap-1" title="Hubungkan Keyboard MIDI USB">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="6" width="20" height="12" rx="2"></rect>
-            <circle cx="6" cy="12" r="1"></circle>
-            <circle cx="10" cy="12" r="1"></circle>
-            <circle cx="14" cy="12" r="1"></circle>
-            <circle cx="18" cy="12" r="1"></circle>
-          </svg>
-          <span class="hidden lg:inline">MIDI</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Area Not Melayang (Canvas Falling Notes Waterfall) (Fitur: 2, 8) -->
-    <div id="waterfall-container" class="flex-1 w-full relative bg-[#07070A] overflow-hidden">
-      <canvas id="waterfall-canvas" class="absolute inset-0 w-full h-full block"></canvas>
-    </div>
-
-    <!-- Papan Tuts Piano Responsif C4 - B5 (Fitur: 1, 8) -->
-    <div id="piano-wrapper" class="w-full shrink-0 bg-[#0E0F16] border-t border-[#2A2A33] safe-padding-bottom relative">
-      <div id="piano-keyboard" class="relative w-full h-32 sm:h-40 md:h-48 touch-none select-none">
-        <!-- 14 Tuts Putih + 10 Tuts Hitam diatur secara absolut / flex dalam container ini -->
       </div>
     </div>
   </div>
 
   <!-- ========================================================================= -->
-  <!-- 3. MODAL HASIL & SKOR LATIHAN (Fitur: 7) -->
+  <!-- 6. MODAL HASIL & SKOR LATIHAN (Fitur: 7) -->
   <!-- ========================================================================= -->
-  <div id="result-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-[#121216] border border-[#2A2A33] rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl flex flex-col gap-4">
+  <div id="result-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#121216] border border-[#2A2A38] rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl flex flex-col gap-4">
       <div class="w-14 h-14 rounded-full bg-[#FF6B00]/15 text-[#FF6B00] mx-auto flex items-center justify-center">
         <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="8" r="7"></circle>
@@ -396,30 +398,30 @@
 
       <!-- Ringkasan Metrik -->
       <div class="grid grid-cols-2 gap-2 text-left">
-        <div class="bg-[#18181F] p-3 rounded-xl border border-[#2A2A33]">
+        <div class="bg-[#181820] p-3 rounded-xl border border-[#2A2A38]">
           <span class="text-[10px] text-zinc-400 uppercase tracking-wider block">Akurasi</span>
-          <span id="score-accuracy" class="text-2xl font-bold font-display text-[#FF6B00]">0%</span>
+          <span id="score-accuracy" class="text-2xl font-bold font-display text-[#FF9500]">0%</span>
         </div>
-        <div class="bg-[#18181F] p-3 rounded-xl border border-[#2A2A33]">
-          <span class="text-[10px] text-zinc-400 uppercase tracking-wider block">Benar</span>
+        <div class="bg-[#181820] p-3 rounded-xl border border-[#2A2A38]">
+          <span class="text-[10px] text-emerald-400 uppercase tracking-wider block">Not Benar</span>
           <span id="score-correct" class="text-2xl font-bold font-display text-emerald-400">0</span>
         </div>
-        <div class="bg-[#18181F] p-3 rounded-xl border border-[#2A2A33]">
-          <span class="text-[10px] text-zinc-400 uppercase tracking-wider block">Salah</span>
-          <span id="score-wrong" class="text-2xl font-bold font-display text-rose-400">0</span>
+        <div class="bg-[#181820] p-3 rounded-xl border border-[#2A2A38]">
+          <span class="text-[10px] text-rose-400 uppercase tracking-wider block">Salah Tekan</span>
+          <span id="score-wrong" class="text-xl font-bold font-display text-rose-400">0</span>
         </div>
-        <div class="bg-[#18181F] p-3 rounded-xl border border-[#2A2A33]">
+        <div class="bg-[#181820] p-3 rounded-xl border border-[#2A2A38]">
           <span class="text-[10px] text-zinc-400 uppercase tracking-wider block">Terlewat</span>
-          <span id="score-missed" class="text-2xl font-bold font-display text-zinc-400">0</span>
+          <span id="score-missed" class="text-xl font-bold font-display text-zinc-400">0</span>
         </div>
       </div>
 
       <!-- Tombol Aksi -->
       <div class="flex flex-col gap-2 pt-2">
-        <button id="btn-replay-song" class="w-full py-2.5 bg-[#FF6B00] hover:bg-[#FF8800] text-black font-bold text-xs rounded-xl shadow-lg shadow-[#FF6B00]/25 transition">
+        <button id="btn-replay" class="w-full py-2.5 bg-[#FF6B00] hover:bg-[#FF8800] text-black font-bold text-xs rounded-xl shadow-lg shadow-[#FF6B00]/25 transition">
           Main Lagi
         </button>
-        <button id="btn-choose-other-song" class="w-full py-2.5 bg-[#18181F] hover:bg-[#2A2A33] border border-[#2A2A33] text-zinc-300 hover:text-white font-semibold text-xs rounded-xl transition">
+        <button id="btn-change-song" class="w-full py-2.5 bg-[#1C1C24] hover:bg-[#2A2A38] text-white font-semibold text-xs rounded-xl border border-[#2A2A38] transition">
           Pilih Lagu Lain
         </button>
       </div>
@@ -427,11 +429,11 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- 4. MODAL PETUNJUK iOS SAFARI PWA (Fitur: 13) -->
+  <!-- 7. MODAL PETUNJUK INSTALASI PWA IOS (Fitur: 13) -->
   <!-- ========================================================================= -->
-  <div id="ios-install-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-[#121216] border border-[#2A2A33] rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl flex flex-col gap-4">
-      <div class="w-12 h-12 rounded-2xl bg-[#FF6B00]/10 text-[#FF6B00] mx-auto flex items-center justify-center">
+  <div id="ios-pwa-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#121216] border border-[#2A2A38] rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl flex flex-col gap-4">
+      <div class="w-12 h-12 rounded-2xl bg-[#FF6B00]/15 text-[#FF6B00] mx-auto flex items-center justify-center">
         <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
           <polyline points="16 6 12 2 8 6"></polyline>
@@ -440,21 +442,19 @@
       </div>
 
       <div>
-        <h3 class="text-lg font-bold font-display text-white">Pasang di Layar Utama iPhone/iPad</h3>
-        <p class="text-xs text-zinc-400 mt-2 text-left leading-relaxed">
-          1. Ketuk tombol <strong class="text-white">Bagikan (Share)</strong> di bilah bawah browser Safari Anda.<br>
-          2. Gulir menu ke bawah lalu pilih <strong class="text-white">"Tambah ke Layar Utama" (Add to Home Screen)</strong>.<br>
-          3. Ketuk <strong class="text-white">Tambah</strong> di pojok kanan atas.
+        <h3 class="text-base font-bold font-display text-white">Pasang di iPhone / iPad</h3>
+        <p class="text-xs text-zinc-400 mt-1">
+          Buka menu Bagikan (<strong class="text-white">Share</strong>) di Safari, lalu pilih <strong class="text-white">"Tambahkan ke Layar Utama"</strong> (<strong class="text-[#FF9500]">Add to Home Screen</strong>).
         </p>
       </div>
 
-      <button id="btn-close-ios-modal" class="w-full py-2 bg-[#18181F] hover:bg-[#2A2A33] border border-[#2A2A33] text-zinc-300 font-semibold text-xs rounded-xl transition">
+      <button id="btn-close-ios-modal" class="mt-2 w-full py-2 bg-[#FF6B00] hover:bg-[#FF8800] text-black font-bold text-xs rounded-xl transition">
         Mengerti
       </button>
     </div>
   </div>
 
-  <!-- Scripts -->
+  <!-- Skrip Konfigurasi & Aplikasi -->
   <script src="./config.js"></script>
   <script src="./app.js"></script>
 </body>
