@@ -937,12 +937,17 @@
     }
 
     try {
+      const headers = {
+        apikey: anonKey,
+        'Content-Type': 'application/json'
+      };
+      if (anonKey.startsWith('eyJ')) {
+        headers['Authorization'] = `Bearer ${anonKey}`;
+      }
+
       const res = await fetch(queryUrl, {
         method: 'GET',
-        headers: {
-          apikey: anonKey,
-          'Content-Type': 'application/json'
-        }
+        headers: headers
       });
 
       if (!res.ok) {
@@ -1069,11 +1074,16 @@
 
     // Ambil detail lengkap lagu beserta array notes dari Supabase (Fitur: 4)
     try {
+      const headers = {
+        apikey: anonKey,
+        'Content-Type': 'application/json'
+      };
+      if (anonKey.startsWith('eyJ')) {
+        headers['Authorization'] = `Bearer ${anonKey}`;
+      }
+
       const res = await fetch(`${supabaseUrl}/rest/v1/songs?id=eq.${encodeURIComponent(songId)}&select=*`, {
-        headers: {
-          apikey: anonKey,
-          'Content-Type': 'application/json'
-        }
+        headers: headers
       });
 
       if (!res.ok) {
