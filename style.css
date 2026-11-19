@@ -1,0 +1,195 @@
+/*
+ * File: style.css
+ * Fungsi: Tata gaya tema gelap & orange, tuts piano responsif, animasi falling notes, dan area notch aman
+ * Fitur: 1, 2, 7, 13
+ */
+
+/* Safe area insets untuk perangkat berlayar notch (iPhone & Android modern) */
+.safe-padding-top {
+  padding-top: max(8px, env(safe-area-inset-top));
+}
+.safe-padding-bottom {
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+.safe-padding-x {
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+}
+.safe-padding-all {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Sembunyikan scrollbar visual namun tetap bisa digulir */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Tata letak fleksibel menggunakan dvh untuk akurasi viewport mobile */
+@supports (height: 100dvh) {
+  body {
+    height: 100dvh;
+  }
+}
+
+/* ==========================================================================
+   PIANO KEYS STYLING (14 Tuts Putih + 10 Tuts Hitam C4 - B5)
+   ========================================================================== */
+#piano-keyboard {
+  display: flex;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #0b0b0e;
+}
+
+/* Tuts Putih (14 buah) */
+.white-key {
+  position: relative;
+  flex: 1 1 0;
+  height: 100%;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F5F5FA 80%, #D5D5DF 94%, #BCBCBC 100%);
+  border: 1px solid #1a1a24;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  box-shadow: inset 0 -4px 4px rgba(0, 0, 0, 0.15), 0 4px 6px -1px rgba(0, 0, 0, 0.6);
+  z-index: 10;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 8px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: transform 0.05s ease, background 0.08s ease, box-shadow 0.08s ease;
+}
+
+.white-key:active,
+.white-key.is-pressed {
+  background: linear-gradient(180deg, #FF9500 0%, #FF6B00 70%, #D95300 100%) !important;
+  transform: translateY(3px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 107, 0, 0.7) !important;
+}
+
+.white-key.is-target {
+  background: linear-gradient(180deg, #FFF3E0 0%, #FFE0B2 40%, #FFB74D 100%);
+  box-shadow: 0 0 18px rgba(255, 107, 0, 0.8), inset 0 -4px 6px rgba(255, 107, 0, 0.4);
+}
+
+/* Tuts Hitam (10 buah) */
+.black-key {
+  position: absolute;
+  top: 0;
+  height: 60%;
+  background: linear-gradient(180deg, #24242A 0%, #16161C 60%, #070709 100%);
+  border: 1px solid #000000;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  box-shadow: inset 0 -3px 3px rgba(255, 255, 255, 0.1), 0 5px 8px rgba(0, 0, 0, 0.9);
+  z-index: 20;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 6px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: transform 0.05s ease, background 0.08s ease, box-shadow 0.08s ease;
+}
+
+.black-key:active,
+.black-key.is-pressed {
+  background: linear-gradient(180deg, #FF8800 0%, #FF6B00 65%, #C24800 100%) !important;
+  transform: translateY(2px) scaleY(0.98);
+  box-shadow: 0 0 16px rgba(255, 107, 0, 0.9), inset 0 2px 4px rgba(0,0,0,0.5) !important;
+}
+
+.black-key.is-target {
+  background: linear-gradient(180deg, #B24BF3 0%, #8A2BE2 60%, #6815B8 100%);
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.85), inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Label Not & Hint Huruf Keyboard */
+.key-label-note {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.white-key .key-label-note {
+  color: #27272A;
+}
+.white-key.is-pressed .key-label-note,
+.white-key.is-target .key-label-note {
+  color: #000000;
+}
+
+.black-key .key-label-note {
+  color: #D4D4D8;
+  font-size: 9px;
+}
+
+.key-label-hint {
+  font-family: 'Plus Jakarta Sans', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  margin-top: 2px;
+  pointer-events: none;
+  line-height: 1;
+}
+.white-key .key-label-hint {
+  color: #71717A;
+}
+.black-key .key-label-hint {
+  color: #A1A1AA;
+}
+
+/* Sembunyikan hint keyboard di perangkat touch */
+@media (hover: none) and (pointer: coarse) {
+  .key-label-hint {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   ORIENTATION & RESPONSIVE ADJUSTMENTS
+   ========================================================================== */
+/* Mode Landscape di HP (tinggi viewport < 500px) */
+@media (orientation: landscape) and (max-height: 500px) {
+  #practice-screen header {
+    padding-top: max(4px, env(safe-area-inset-top));
+    padding-bottom: 4px;
+  }
+  #practice-screen .text-sm {
+    font-size: 0.8rem;
+  }
+  #piano-keyboard {
+    height: 90px !important;
+  }
+  .key-label-note {
+    font-size: 9px;
+  }
+  .white-key {
+    padding-bottom: 4px;
+  }
+  .black-key {
+    padding-bottom: 3px;
+  }
+}
+
+/* Garis Target Neon di atas Tuts (ditarik juga di Canvas) */
+.hit-line-pulse {
+  box-shadow: 0 0 15px #FF6B00, 0 0 30px #FF9500;
+}

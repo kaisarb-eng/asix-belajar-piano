@@ -1,0 +1,9 @@
+.env
+.env.*
+.vercel
+node_modules
+.cache_sync
+extracted_ref
+extracted_ref_2
+stitch_*
+*.zip
